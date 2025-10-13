@@ -68,23 +68,21 @@ window.showTab=showTab;
 function logout(){ localStorage.removeItem("magacin_pass"); location.reload(); }
 window.logout=logout;
 
-// 🔹 Листа на артикли (непроменлива)
-const artikliLista = [
-  {ime:"Млеко", merka:"литар", kategorija:"Млечни", cena:1.2, minKolicina:10},
-  {ime:"Јогурт", merka:"кг", kategorija:"Млечни", cena:2.5, minKolicina:5},
-  {ime:"Сирење", merka:"кг", kategorija:"Млечни", cena:8, minKolicina:2},
-  {ime:"Јаболко", merka:"кг", kategorija:"Овошје", cena:3, minKolicina:20},
-  {ime:"Компир", merka:"кг", kategorija:"Зеленчук", cena:0.8, minKolicina:50}
-];
-
-// 🔹 Dropdown за категорија
-function loadArtikliDropdown(){
+// 🔹 Вчитување на артикли од Firebase
+let artikliLista = [];
+async function loadArtikliDropdown(){
   const select = document.getElementById("artiklSelect");
   if(!select) return;
+
+  // Вчитување од Firestore
+  const snap = await getDocs(collection(db,"artikli"));
+  artikliLista = snap.docs.map(doc=>doc.data());
+
+  // Филтрирање по категорија
   const kategorija = document.getElementById("kategorijaSelect").value;
   select.innerHTML = "";
-  artikliLista.forEach(a => {
-    if(!kategorija || a.kategorija===kategorija){
+  artikliLista.forEach(a=>{
+    if(!kategorija || a.kategorija === kategorija){
       const option = document.createElement("option");
       option.value = a.ime;
       option.text = `${a.ime} (${a.merka})`;
@@ -101,11 +99,13 @@ window.loadArtikliDropdown=loadArtikliDropdown;
 async function dodadiMagacin(e){
   e.preventDefault();
   const select = document.getElementById("artiklSelect");
+  if(!select.value) return alert("Одбери артикл!");
   const ime = select.value;
   const merka = select.options[select.selectedIndex].dataset.merka;
   const cena = parseFloat(select.options[select.selectedIndex].dataset.cena);
   const minKolicina = parseFloat(select.options[select.selectedIndex].dataset.min);
   const kolicina = parseFloat(document.getElementById("vnesKolicina").value);
+  if(!kolicina || kolicina <=0) return alert("Внеси количина!");
   const datum = new Date();
   await addDoc(collection(db,"magacin"),{ime,merka,cena,kolicina,datum,minKolicina});
   document.getElementById("vnesKolicina").value="";
@@ -176,9 +176,39 @@ window.kontrolaVnes=kontrolaVnes;
 <h2>➕ Внес на артикли</h2>
 <select id="kategorijaSelect" onchange="loadArtikliDropdown()">
   <option value="">Сите категории</option>
-  <option value="Млечни">Млечни</option>
-  <option value="Овошје">Овошје</option>
-  <option value="Зеленчук">Зеленчук</option>
 </select>
 <select id="artiklSelect"></select>
-<input type="number" id="vnesKolicina" placeholder="
+<input type="number" id="vnesKolicina" placeholder="Количина">
+<button onclick="dodadiMagacin(event)">Додади</button>
+<div id="vnesLista"></div>
+</div>
+
+<!-- TAB: Излез на артикли -->
+<div class="tab" id="tabIzlez">
+<h2>➖ Излез на артикли</h2>
+<div id="izlezLista"></div>
+</div>
+
+<!-- TAB: Извештај -->
+<div class="tab" id="tabIzvestaj">
+<h2>📊 Извештај (моментална состојба)</h2>
+<div id="lista"></div>
+</div>
+
+<!-- TAB: Очекувано / Нарачано -->
+<div class="tab" id="tabOcekuvano">
+<h2>📦 Очекувано / Нарачано</h2>
+<div id="oczekDiv"></div>
+</div>
+
+<!-- TAB: Контрола -->
+<div class="tab" id="tabKontrola">
+<h2>🔍 Контрола на внес</h2>
+<input type="date" id="kontrolaStart">
+<input type="date" id="kontrolaEnd">
+<button onclick="kontrolaVnes(document.getElementById('kontrolaStart').value, document.getElementById('kontrolaEnd').value)">Филтрирај</button>
+<div id="kontrolaLista"></div>
+</div>
+
+</body>
+</html>
