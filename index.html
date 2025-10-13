@@ -1,39 +1,27 @@
 <!DOCTYPE html>
 <html lang="mk">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Магацин</title>
-  <style>
-    body {
-      margin: 0; font-family: Arial, sans-serif; height: 100vh;
-      display: flex; justify-content: center; align-items: center;
-      background: linear-gradient(135deg, #1f1f1f, #333);
-    }
-    #login-card {
-      background: #fff; border-radius: 12px; padding: 40px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.3); text-align: center;
-      width: 300px;
-    }
-    #login-card input {
-      width: 100%; padding: 10px; margin: 10px 0; border-radius: 6px; border: 1px solid #ccc;
-    }
-    #login-card button {
-      width: 100%; padding: 10px; background: #007BFF; border: none; border-radius: 6px; color: #fff;
-      font-size: 16px; cursor: pointer;
-    }
-    #login-card button:hover { background: #0056b3; }
-    #app { display: none; }
-    h2 { text-align: center; }
-    #lista div { margin: 5px; padding: 5px; border: 1px solid #ddd; }
-  </style>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc } 
-      from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Магацин</title>
+<style>
+  body { margin:0; font-family: Arial, sans-serif; height:100vh; display:flex; justify-content:center; align-items:center; background: linear-gradient(135deg,#1f1f1f,#333); }
+  #login-card, #dashboard, .tab { display:none; background:#fff; border-radius:12px; padding:30px; box-shadow:0 8px 20px rgba(0,0,0,0.3); width:320px; text-align:center; }
+  #login-card input { width:100%; padding:10px; margin:10px 0; border-radius:6px; border:1px solid #ccc; }
+  #login-card button, .tab button, .menu button { width:100%; padding:10px; margin:5px 0; border:none; border-radius:6px; background:#007BFF; color:#fff; font-size:16px; cursor:pointer; }
+  #login-card button:hover, .tab button:hover, .menu button:hover { background:#0056b3; }
+  h2{text-align:center;}
+  #lista div { margin:5px; padding:5px; border:1px solid #ddd; }
+  .menu button { width:90%; margin:8px 0; }
+  .back-btn { background:#555; }
+</style>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc } 
+  from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    // 👇 Внеси ги твоите Firebase податоци тука
-    const firebaseConfig = {
+// 👇 Firebase податоци
+const firebaseConfig = {
   apiKey: "AIzaSyAbCqqSwKQ62Q38K-DM15jsZQePloDD8XM",
   authDomain: "magacinapp-6a8f5.firebaseapp.com",
   projectId: "magacinapp-6a8f5",
@@ -42,90 +30,164 @@
   appId: "1:160054879907:web:ded639dcd0a9e0a64e4116"
 };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-    const password = "evi"; // твојата лозинка
-    const loginCard = document.getElementById("login-card");
-    const appDiv = document.getElementById("app");
+// Лозинка
+const password = "1234";
+const loginCard = document.getElementById("login-card");
+const dashboard = document.getElementById("dashboard");
 
-    // Проверка дали лозинката е зачувана
-    if(localStorage.getItem("magacin_pass") === password){
-      loginCard.style.display = "none";
-      appDiv.style.display = "block";
+// Проверка на лозинка во localStorage
+window.addEventListener("load", ()=>{
+  if(localStorage.getItem("magacin_pass") === password){
+    showDashboard();
+  } else {
+    loginCard.style.display = "block";
+  }
+});
+
+// Login
+function checkLogin(){
+  const input = document.getElementById("pass").value;
+  if(input===password){
+    localStorage.setItem("magacin_pass",password);
+    showDashboard();
+  } else { alert("Неточна лозинка!"); }
+}
+window.checkLogin=checkLogin;
+
+// Прикажи Dashboard
+function showDashboard(){
+  loginCard.style.display="none";
+  dashboard.style.display="block";
+  hideTabs();
+}
+
+// Функции за табови
+function hideTabs(){ document.querySelectorAll(".tab").forEach(t=>t.style.display="none"); }
+function showTab(id){ hideTabs(); document.getElementById(id).style.display="block"; }
+window.showTab=showTab;
+
+// Logout
+function logout(){ localStorage.removeItem("magacin_pass"); location.reload(); }
+window.logout=logout;
+
+// Firebase функции за магацин
+async function prikaziArtikli(divID, kolekcija){
+  const div = document.getElementById(divID);
+  div.innerHTML="";
+  const querySnapshot = await getDocs(collection(db,kolekcija));
+  querySnapshot.forEach(docu=>{
+    const data = docu.data();
+    div.innerHTML+=`<div><b>${data.ime}</b> – ${data.kolicina} ${data.merka} (${data.cena}$) 
+      ${kolekcija!=="oczekuvano"?`<button onclick="izbrisi('${docu.id}','${kolekcija}')">Избриши</button>`:""}
+    </div>`;
+  });
+}
+
+// Додавање артикл
+async function dodadiArtikl(e,kolekcija){
+  e.preventDefault();
+  const ime = e.target.ime.value;
+  const kolicina = parseFloat(e.target.kolicina.value);
+  const merka = e.target.merka.value;
+  const cena = parseFloat(e.target.cena.value);
+  await addDoc(collection(db,kolekcija),{ime,kolicina,merka,cena});
+  e.target.reset();
+  prikaziArtikli(kolekcija==="artikli"?"lista":"oczekDiv",kolekcija);
+}
+window.dodadiArtikl=dodadiArtikl;
+
+// Избриши артикл
+async function izbrisi(id,kolekcija){
+  await deleteDoc(doc(db,kolekcija,id));
+  prikaziArtikli(kolekcija==="artikli"?"lista":"oczekDiv",kolekcija);
+}
+window.izbrisi=izbrisi;
+
+// Излез на артикл
+async function izlezArtikl(e){
+  e.preventDefault();
+  const ime = e.target.ime.value;
+  const kolicina = parseFloat(e.target.kolicina.value);
+  const snap = await getDocs(collection(db,"artikli"));
+  snap.forEach(async docu=>{
+    const data = docu.data();
+    if(data.ime===ime){
+      const newKolicina = Math.max(0,data.kolicina - kolicina);
+      await updateDoc(doc(db,"artikli",docu.id),{kolicina:newKolicina});
     }
-
-    function checkLogin(){
-      const input = document.getElementById("pass").value;
-      if(input === password){
-        localStorage.setItem("magacin_pass", password);
-        loginCard.style.display = "none";
-        appDiv.style.display = "block";
-        prikaziArtikli();
-      } else {
-        alert("Неточна лозинка!");
-      }
-    }
-
-    // 🟢 Firebase магацинска логика
-    const listaDiv = document.getElementById("lista");
-    const form = document.getElementById("form");
-
-    async function prikaziArtikli() {
-      listaDiv.innerHTML = "";
-      const querySnapshot = await getDocs(collection(db, "artikli"));
-      querySnapshot.forEach((docu) => {
-        const data = docu.data();
-        listaDiv.innerHTML += `
-          <div>
-            <b>${data.ime}</b> – ${data.kolicina} ${data.merka} (${data.cena} $)
-            <button onclick="izbrisi('${docu.id}')">Избриши</button>
-          </div>`;
-      });
-    }
-
-    async function dodadiArtikl(e) {
-      e.preventDefault();
-      const ime = form.ime.value;
-      const kolicina = parseFloat(form.kolicina.value);
-      const merka = form.merka.value;
-      const cena = parseFloat(form.cena.value);
-      await addDoc(collection(db, "artikli"), { ime, kolicina, merka, cena });
-      form.reset();
-      prikaziArtikli();
-    }
-
-    async function izbrisi(id) {
-      await deleteDoc(doc(db, "artikli", id));
-      prikaziArtikli();
-    }
-
-    form.addEventListener("submit", dodadiArtikl);
-    window.izbrisi = izbrisi;
-    window.checkLogin = checkLogin;
-  </script>
+  });
+  e.target.reset();
+  prikaziArtikli("lista","artikli");
+}
+window.izlezArtikl=izlezArtikl;
+</script>
 </head>
 <body>
 
-  <!-- Login екран -->
-  <div id="login-card">
-    <h2>🔒 Внеси лозинка</h2>
-    <input type="password" id="pass" placeholder="Лозинка">
-    <button onclick="checkLogin()">Влези</button>
-  </div>
+<!-- Login -->
+<div id="login-card">
+  <h2>🔒 Внеси лозинка</h2>
+  <input type="password" id="pass" placeholder="Лозинка">
+  <button onclick="checkLogin()">Влези</button>
+</div>
 
-  <!-- Магацин апликација -->
-  <div id="app">
-    <h2>📦 Магацинска апликација</h2>
-    <form id="form">
-      <input name="ime" placeholder="Име на артикл" required>
-      <input name="kolicina" type="number" placeholder="Количина" required>
-      <input name="merka" placeholder="Мерка (парче, кг...)" required>
-      <input name="cena" type="number" step="0.01" placeholder="Цена" required>
-      <button type="submit">Додај</button>
-    </form>
-    <div id="lista"></div>
+<!-- Dashboard -->
+<div id="dashboard">
+  <h2>📋 Главно мени</h2>
+  <div class="menu">
+    <button onclick="showTab('tabVnes')">Внес на артикли</button>
+    <button onclick="showTab('tabIzlez')">Излез на артикли</button>
+    <button onclick="showTab('tabIzvestaj')">Извештај (моментална состојба)</button>
+    <button onclick="showTab('tabOcekuvano')">Очекувано / Нарачано</button>
+    <button class="back-btn" onclick="logout()">Logout</button>
   </div>
+</div>
+
+<!-- Внес на артикли -->
+<div class="tab" id="tabVnes">
+  <h2>➕ Внес на артикли</h2>
+  <form onsubmit="dodadiArtikl(event,'artikli')" id="form">
+    <input name="ime" placeholder="Име на артикл" required>
+    <input name="kolicina" type="number" placeholder="Количина" required>
+    <input name="merka" placeholder="Мерка (парче, кг...)" required>
+    <input name="cena" type="number" step="0.01" placeholder="Цена" required>
+    <button type="submit">Додај</button>
+  </form>
+  <div id="lista"></div>
+</div>
+
+<!-- Излез на артикли -->
+<div class="tab" id="tabIzlez">
+  <h2>➖ Излез на артикли</h2>
+  <form onsubmit="izlezArtikl(event)">
+    <input name="ime" placeholder="Име на артикл" required>
+    <input name="kolicina" type="number" placeholder="Количина" required>
+    <button type="submit">Излез</button>
+  </form>
+</div>
+
+<!-- Извештај -->
+<div class="tab" id="tabIzvestaj">
+  <h2>📊 Моментална состојба</h2>
+  <div id="lista"></div>
+  <button onclick="prikaziArtikli('lista','artikli')">Обнови</button>
+</div>
+
+<!-- Очекувано / нарачано -->
+<div class="tab" id="tabOcekuvano">
+  <h2>📝 Очекувано / Нарачано</h2>
+  <form onsubmit="dodadiArtikl(event,'oczekuvano')">
+    <input name="ime" placeholder="Име на артикл" required>
+    <input name="kolicina" type="number" placeholder="Количина" required>
+    <input name="merka" placeholder="Мерка" required>
+    <input name="cena" type="number" step="0.01" placeholder="Цена" required>
+    <button type="submit">Додај</button>
+  </form>
+  <div id="oczekDiv"></div>
+</div>
 
 </body>
 </html>
