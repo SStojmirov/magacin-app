@@ -19,7 +19,7 @@ h2{text-align:center;}
 </style>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc } 
+import { getFirestore, collection, getDocs, addDoc, Timestamp } 
 from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 // 🔹 Firebase конфиг
@@ -124,7 +124,7 @@ async function dodadiMagacin(e){
   const minKolicina = parseFloat(select.options[select.selectedIndex].dataset.min);
   const kolicina = parseFloat(document.getElementById("vnesKolicina").value);
   if(!kolicina || kolicina <=0) return alert("Внеси количина!");
-  const datum = new Date();
+  const datum = Timestamp.fromDate(new Date()); // ✅ Timestamp за Firestore
   await addDoc(collection(db,"magacin"),{ime,merka,cena,kolicina,datum,minKolicina});
   document.getElementById("vnesKolicina").value="";
   prikaziArtikli("vnesLista","magacin",true);
