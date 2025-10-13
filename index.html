@@ -15,13 +15,14 @@ h2{text-align:center;}
 .back-btn { background:#555; }
 #vnesLista, #izlezLista, #lista, #oczekDiv, #kontrolaLista { margin-top:10px; }
 #vnesLista div, #izlezLista div, #lista div, #oczekDiv div, #kontrolaLista div { padding:5px; border:1px solid #ddd; margin:3px 0; border-radius:5px; text-align:left; }
+.red { color:red; font-weight:bold; }
 </style>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, query, where, orderBy } 
+import { getFirestore, collection, getDocs, addDoc } 
 from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-// 🔹 Firebase конфигурација
+// 🔹 Firebase конфиг
 const firebaseConfig = {
   apiKey: "AIzaSyAbCqqSwKQ62Q38K-DM15jsZQePloDD8XM",
   authDomain: "magacinapp-6a8f5.firebaseapp.com",
@@ -30,19 +31,14 @@ const firebaseConfig = {
   messagingSenderId: "160054879907",
   appId: "1:160054879907:web:ded639dcd0a9e0a64e4116"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Лозинка
+// 🔹 Лозинка
 const password = "1234";
-const loginCard = document.getElementById("login-card");
-const dashboard = document.getElementById("dashboard");
-
-// Проверка на лозинка
 window.addEventListener("load", ()=>{
   if(localStorage.getItem("magacin_pass")===password){ showDashboard(); } 
-  else { loginCard.style.display="block"; }
+  else { document.getElementById("login-card").style.display="block"; }
 });
 
 function checkLogin(){
@@ -52,7 +48,7 @@ function checkLogin(){
 }
 window.checkLogin=checkLogin;
 
-function showDashboard(){ loginCard.style.display="none"; dashboard.style.display="block"; hideTabs(); }
+function showDashboard(){ document.getElementById("login-card").style.display="none"; document.getElementById("dashboard").style.display="block"; hideTabs(); }
 function hideTabs(){ document.querySelectorAll(".tab").forEach(t=>t.style.display="none"); }
 function showTab(id){ hideTabs(); document.getElementById(id).style.display="block"; }
 window.showTab=showTab;
@@ -60,46 +56,63 @@ window.showTab=showTab;
 function logout(){ localStorage.removeItem("magacin_pass"); location.reload(); }
 window.logout=logout;
 
-// 🔹 Внес со dropdown
-async function loadArtikliDropdown(){
+// 🔹 Листа на артикли (во позадина, непроменлива)
+const artikliLista = [
+  {ime:"Млеко", merka:"литар", kategorija:"Млечни", cena:1.2, minKolicina:10},
+  {ime:"Јогурт", merka:"кг", kategorija:"Млечни", cena:2.5, minKolicina:5},
+  {ime:"Сирење", merka:"кг", kategorija:"Млечни", cena:8, minKolicina:2},
+  {ime:"Јаболко", merka:"кг", kategorija:"Овошје", cena:3, minKolicina:20},
+  {ime:"Компир", merka:"кг", kategorija:"Зеленчук", cena:0.8, minKolicina:50}
+];
+
+// 🔹 Dropdown за категорија
+function loadArtikliDropdown(){
   const select = document.getElementById("artiklSelect");
-  select.innerHTML="";
-  const snap = await getDocs(collection(db,"artikli"));
-  snap.forEach(docu=>{
-    const data = docu.data();
-    const option = document.createElement("option");
-    option.value=docu.id;
-    option.text=`${data.ime} (${data.merka})`;
-    option.dataset.merka=data.merka;
-    select.appendChild(option);
+  const kategorija = document.getElementById("kategorijaSelect").value;
+  select.innerHTML = "";
+  artikliLista.forEach(a => {
+    if(!kategorija || a.kategorija === kategorija){
+      const option = document.createElement("option");
+      option.value = a.ime;
+      option.text = `${a.ime} (${a.merka})`;
+      option.dataset.merka = a.merka;
+      option.dataset.cena = a.cena;
+      option.dataset.min = a.minKolicina;
+      select.appendChild(option);
+    }
   });
 }
 window.loadArtikliDropdown=loadArtikliDropdown;
 
+// 🔹 Внес на артикли
 async function dodadiMagacin(e){
   e.preventDefault();
   const select = document.getElementById("artiklSelect");
-  const docId = select.value;
-  const ime = select.options[select.selectedIndex].text.split(" (")[0];
+  const ime = select.value;
   const merka = select.options[select.selectedIndex].dataset.merka;
+  const cena = parseFloat(select.options[select.selectedIndex].dataset.cena);
+  const minKolicina = parseFloat(select.options[select.selectedIndex].dataset.min);
   const kolicina = parseFloat(document.getElementById("vnesKolicina").value);
   const datum = new Date();
-  await addDoc(collection(db,"magacin"),{ime,kolicina,merka,datum});
+  await addDoc(collection(db,"magacin"),{ime,merka,cena,kolicina,datum,minKolicina});
   document.getElementById("vnesKolicina").value="";
   prikaziArtikli("vnesLista","magacin",true);
 }
 window.dodadiMagacin=dodadiMagacin;
 
-// Прикажи артикли
+// 🔹 Прикажи артикли
 async function prikaziArtikli(divID,kolekcija,onlyLast=false){
   const div = document.getElementById(divID);
   div.innerHTML="";
   const snap = await getDocs(collection(db,kolekcija));
   snap.forEach(docu=>{
     const data = docu.data();
+    const klas = (data.kolicina < data.minKolicina) ? "red" : "";
     if(onlyLast){
-      div.innerHTML=`<div><b>${data.ime}</b> – ${data.kolicina} ${data.merka}</div>`;
-    } else { div.innerHTML+=`<div><b>${data.ime}</b> – ${data.kolicina} ${data.merka}</div>`; }
+      div.innerHTML=`<div class="${klas}"><b>${data.ime}</b> – ${data.kolicina} ${data.merka} ⚠️</div>`;
+    } else {
+      div.innerHTML+=`<div class="${klas}"><b>${data.ime}</b> – ${data.kolicina} ${data.merka} ⚠️</div>`;
+    }
   });
 }
 
@@ -114,11 +127,13 @@ async function kontrolaVnes(startStr,endStr){
     const data = docu.data();
     const datum = data.datum.toDate ? data.datum.toDate() : new Date(data.datum);
     if(datum>=startDate && datum<=endDate){
-      div.innerHTML+=`<div><b>${data.ime}</b> – ${data.kolicina} ${data.merka} - ${datum.toLocaleString()}</div>`;
+      const klas = (data.kolicina < data.minKolicina) ? "red" : "";
+      div.innerHTML+=`<div class="${klas}"><b>${data.ime}</b> – ${data.kolicina} ${data.merka} ⚠️ ${datum.toLocaleString()}</div>`;
     }
   });
 }
 window.kontrolaVnes=kontrolaVnes;
+
 </script>
 </head>
 <body>
@@ -146,42 +161,7 @@ window.kontrolaVnes=kontrolaVnes;
 <!-- Внес на артикли -->
 <div class="tab" id="tabVnes">
 <h2>➕ Внес на артикли</h2>
-<form onsubmit="dodadiMagacin(event)">
-<select id="artiklSelect" required></select>
-<input type="number" id="vnesKolicina" placeholder="Количина" required>
-<button type="submit">Додај</button>
-</form>
-<div id="vnesLista"></div>
-</div>
-
-<!-- Извештај -->
-<div class="tab" id="tabIzvestaj">
-<h2>📊 Моментална состојба</h2>
-<div id="lista"></div>
-<button onclick="prikaziArtikli('lista','magacin')">Обнови</button>
-</div>
-
-<!-- Контрола на внес -->
-<div class="tab" id="tabKontrola">
-<h2>📝 Контрола на внес</h2>
-<label>Од: <input type="date" id="startDate"></label>
-<label>До: <input type="date" id="endDate"></label>
-<button onclick="kontrolaVnes(document.getElementById('startDate').value, document.getElementById('endDate').value)">Прикажи</button>
-<div id="kontrolaLista"></div>
-</div>
-
-<!-- Очекувано / Нарачано -->
-<div class="tab" id="tabOcekuvano">
-<h2>📝 Очекувано / Нарачано</h2>
-<form onsubmit="dodadiArtikl(event,'oczekuvano','oczekDiv')">
-<input name="ime" placeholder="Име на артикл" required>
-<input name="kolicina" type="number" placeholder="Количина" required>
-<input name="merka" placeholder="Мерка" required>
-<input name="cena" type="number" step="0.01" placeholder="Цена" required>
-<button type="submit">Додај</button>
-</form>
-<div id="oczekDiv"></div>
-</div>
-
-</body>
-</html>
+<select id="kategorijaSelect" onchange="loadArtikliDropdown()">
+  <option value="">Сите категории</option>
+  <option value="Млечни">Млечни</option>
+  <option value="Овошје
