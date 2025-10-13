@@ -6,30 +6,27 @@
 <title>Магацин</title>
 <style>
   body { margin:0; font-family: Arial, sans-serif; height:100vh; display:flex; justify-content:center; align-items:center; background: linear-gradient(135deg,#1f1f1f,#333); }
-  #login-card, #dashboard, .tab { display:none; background:#fff; border-radius:12px; padding:30px; box-shadow:0 8px 20px rgba(0,0,0,0.3); width:320px; text-align:center; }
-  #login-card input { width:100%; padding:10px; margin:10px 0; border-radius:6px; border:1px solid #ccc; }
-  #login-card button, .tab button, .menu button { width:100%; padding:10px; margin:5px 0; border:none; border-radius:6px; background:#007BFF; color:#fff; font-size:16px; cursor:pointer; }
-  #login-card button:hover, .tab button:hover, .menu button:hover { background:#0056b3; }
+  #login-card, #dashboard, .tab { display:none; background:#fff; border-radius:12px; padding:30px; box-shadow:0 8px 20px rgba(0,0,0,0.3); width:350px; text-align:center; max-height:90vh; overflow:auto; }
+  input, button, select { width:100%; padding:10px; margin:5px 0; border-radius:6px; font-size:16px; }
+  button { border:none; background:#007BFF; color:#fff; cursor:pointer; }
+  button:hover { background:#0056b3; }
   h2{text-align:center;}
-  #lista div { margin:5px; padding:5px; border:1px solid #ddd; }
   .menu button { width:90%; margin:8px 0; }
   .back-btn { background:#555; }
+  #lista, #vnesLista, #izlezLista, #oczekDiv, #kontrolaLista { margin-top:10px; }
+  #lista div, #vnesLista div, #izlezLista div, #oczekDiv div, #kontrolaLista div { padding:5px; border:1px solid #ddd; margin:3px 0; border-radius:5px; text-align:left; }
 </style>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc } 
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, orderBy } 
   from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-// 👇 Firebase податоци
+// Firebase конфигурација
 const firebaseConfig = {
-  apiKey: "AIzaSyAbCqqSwKQ62Q38K-DM15jsZQePloDD8XM",
-  authDomain: "magacinapp-6a8f5.firebaseapp.com",
-  projectId: "magacinapp-6a8f5",
-  storageBucket: "magacinapp-6a8f5.firebasestorage.app",
-  messagingSenderId: "160054879907",
-  appId: "1:160054879907:web:ded639dcd0a9e0a64e4116"
+  apiKey: "ТВОЈ_API_KEY",
+  authDomain: "ТВОЈ_PROJECT_ID.firebaseapp.com",
+  projectId: "ТВОЈ_PROJECT_ID",
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
@@ -40,10 +37,10 @@ const dashboard = document.getElementById("dashboard");
 
 // Проверка на лозинка во localStorage
 window.addEventListener("load", ()=>{
-  if(localStorage.getItem("magacin_pass") === password){
+  if(localStorage.getItem("magacin_pass")===password){
     showDashboard();
   } else {
-    loginCard.style.display = "block";
+    loginCard.style.display="block";
   }
 });
 
@@ -64,7 +61,7 @@ function showDashboard(){
   hideTabs();
 }
 
-// Функции за табови
+// Табови
 function hideTabs(){ document.querySelectorAll(".tab").forEach(t=>t.style.display="none"); }
 function showTab(id){ hideTabs(); document.getElementById(id).style.display="block"; }
 window.showTab=showTab;
@@ -73,40 +70,38 @@ window.showTab=showTab;
 function logout(){ localStorage.removeItem("magacin_pass"); location.reload(); }
 window.logout=logout;
 
-// Firebase функции за магацин
-async function prikaziArtikli(divID, kolekcija){
-  const div = document.getElementById(divID);
-  div.innerHTML="";
-  const querySnapshot = await getDocs(collection(db,kolekcija));
-  querySnapshot.forEach(docu=>{
-    const data = docu.data();
-    div.innerHTML+=`<div><b>${data.ime}</b> – ${data.kolicina} ${data.merka} (${data.cena}$) 
-      ${kolekcija!=="oczekuvano"?`<button onclick="izbrisi('${docu.id}','${kolekcija}')">Избриши</button>`:""}
-    </div>`;
-  });
-}
-
-// Додавање артикл
-async function dodadiArtikl(e,kolekcija){
+// Внес на артикли
+async function dodadiArtikl(e,kolekcija,showDiv){
   e.preventDefault();
   const ime = e.target.ime.value;
   const kolicina = parseFloat(e.target.kolicina.value);
   const merka = e.target.merka.value;
   const cena = parseFloat(e.target.cena.value);
-  await addDoc(collection(db,kolekcija),{ime,kolicina,merka,cena});
+  const datum = new Date();
+  const docRef = await addDoc(collection(db,kolekcija),{ime,kolicina,merka,cena,datum});
   e.target.reset();
-  prikaziArtikli(kolekcija==="artikli"?"lista":"oczekDiv",kolekcija);
+  prikaziArtikli(showDiv,kolekcija,docRef.id);
 }
 window.dodadiArtikl=dodadiArtikl;
 
-// Избриши артикл
-async function izbrisi(id,kolekcija){
-  await deleteDoc(doc(db,kolekcija,id));
-  prikaziArtikli(kolekcija==="artikli"?"lista":"oczekDiv",kolekcija);
+// Прикажи артикли
+async function prikaziArtikli(divID,kolekcija,lastId=null){
+  const div = document.getElementById(divID);
+  div.innerHTML="";
+  const snap = await getDocs(collection(db,kolekcija));
+  snap.forEach(docu=>{
+    const data = docu.data();
+    if(lastId){ // ако има lastId, прикажува само последниот внес
+      if(docu.id===lastId){
+        div.innerHTML=`<div><b>${data.ime}</b> – ${data.kolicina} ${data.merka} (${data.cena}$)</div>`;
+      }
+    } else { // прикажува сè
+      div.innerHTML+=`<div><b>${data.ime}</b> – ${data.kolicina} ${data.merka} (${data.cena}$)</div>`;
+    }
+  });
 }
-window.izbrisi=izbrisi;
 
-// Излез на артикл
+// Излез на артикли
 async function izlezArtikl(e){
   e.preventDefault();
   const ime = e.target.ime.value;
@@ -123,6 +118,21 @@ async function izlezArtikl(e){
   prikaziArtikli("lista","artikli");
 }
 window.izlezArtikl=izlezArtikl;
+
+// Контрола на внес по датум
+async function kontrolaVnes(startDate,endDate){
+  const div = document.getElementById("kontrolaLista");
+  div.innerHTML="";
+  const snap = await getDocs(collection(db,"artikli"));
+  snap.forEach(docu=>{
+    const data = docu.data();
+    const datum = data.datum.toDate ? data.datum.toDate() : new Date(data.datum);
+    if(datum>=startDate && datum<=endDate){
+      div.innerHTML+=`<div><b>${data.ime}</b> – ${data.kolicina} ${data.merka} (${data.cena}$) - ${datum.toLocaleString()}</div>`;
+    }
+  });
+}
+window.kontrolaVnes=kontrolaVnes;
 </script>
 </head>
 <body>
@@ -142,6 +152,7 @@ window.izlezArtikl=izlezArtikl;
     <button onclick="showTab('tabIzlez')">Излез на артикли</button>
     <button onclick="showTab('tabIzvestaj')">Извештај (моментална состојба)</button>
     <button onclick="showTab('tabOcekuvano')">Очекувано / Нарачано</button>
+    <button onclick="showTab('tabKontrola')">Контрола на внес</button>
     <button class="back-btn" onclick="logout()">Logout</button>
   </div>
 </div>
@@ -149,45 +160,17 @@ window.izlezArtikl=izlezArtikl;
 <!-- Внес на артикли -->
 <div class="tab" id="tabVnes">
   <h2>➕ Внес на артикли</h2>
-  <form onsubmit="dodadiArtikl(event,'artikli')" id="form">
+  <form onsubmit="dodadiArtikl(event,'artikli','vnesLista')">
     <input name="ime" placeholder="Име на артикл" required>
     <input name="kolicina" type="number" placeholder="Количина" required>
     <input name="merka" placeholder="Мерка (парче, кг...)" required>
     <input name="cena" type="number" step="0.01" placeholder="Цена" required>
     <button type="submit">Додај</button>
   </form>
-  <div id="lista"></div>
+  <div id="vnesLista"></div>
 </div>
 
 <!-- Излез на артикли -->
 <div class="tab" id="tabIzlez">
   <h2>➖ Излез на артикли</h2>
-  <form onsubmit="izlezArtikl(event)">
-    <input name="ime" placeholder="Име на артикл" required>
-    <input name="kolicina" type="number" placeholder="Количина" required>
-    <button type="submit">Излез</button>
-  </form>
-</div>
-
-<!-- Извештај -->
-<div class="tab" id="tabIzvestaj">
-  <h2>📊 Моментална состојба</h2>
-  <div id="lista"></div>
-  <button onclick="prikaziArtikli('lista','artikli')">Обнови</button>
-</div>
-
-<!-- Очекувано / нарачано -->
-<div class="tab" id="tabOcekuvano">
-  <h2>📝 Очекувано / Нарачано</h2>
-  <form onsubmit="dodadiArtikl(event,'oczekuvano')">
-    <input name="ime" placeholder="Име на артикл" required>
-    <input name="kolicina" type="number" placeholder="Количина" required>
-    <input name="merka" placeholder="Мерка" required>
-    <input name="cena" type="number" step="0.01" placeholder="Цена" required>
-    <button type="submit">Додај</button>
-  </form>
-  <div id="oczekDiv"></div>
-</div>
-
-</body>
-</html>
+  <form onsubmit="izlez
