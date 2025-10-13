@@ -60,7 +60,12 @@ function showTab(id){
   const tab = document.getElementById(id);
   if(tab){ 
     tab.style.display="block";
-    if(id==="tabVnes"){ setTimeout(loadArtikliDropdown, 10); }
+    if(id==="tabVnes"){ 
+      setTimeout(async ()=>{
+        await loadKategorii();
+        await loadArtikliDropdown();
+      }, 10); 
+    }
   }
 }
 window.showTab=showTab;
@@ -68,17 +73,30 @@ window.showTab=showTab;
 function logout(){ localStorage.removeItem("magacin_pass"); location.reload(); }
 window.logout=logout;
 
+// 🔹 Вчитување на категории од Firebase
+async function loadKategorii(){
+  const snap = await getDocs(collection(db,"artikli"));
+  const kategorii = new Set();
+  snap.docs.forEach(doc=>kategorii.add(doc.data().kategorija));
+  const select = document.getElementById("kategorijaSelect");
+  select.innerHTML = `<option value="">Сите категории</option>`;
+  kategorii.forEach(k=>{
+    const opt = document.createElement("option");
+    opt.value = k;
+    opt.text = k;
+    select.appendChild(opt);
+  });
+}
+
 // 🔹 Вчитување на артикли од Firebase
 let artikliLista = [];
 async function loadArtikliDropdown(){
   const select = document.getElementById("artiklSelect");
   if(!select) return;
 
-  // Вчитување од Firestore
   const snap = await getDocs(collection(db,"artikli"));
   artikliLista = snap.docs.map(doc=>doc.data());
 
-  // Филтрирање по категорија
   const kategorija = document.getElementById("kategorijaSelect").value;
   select.innerHTML = "";
   artikliLista.forEach(a=>{
