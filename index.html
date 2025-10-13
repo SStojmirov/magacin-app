@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="mk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Магацин</title>
+  <script type="module">
+    // Import Firebase libraries
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc } 
+      from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+    // 👇 Внеси ги твоите податоци од Firebase тука:
+    const firebaseConfig = {
+  apiKey: "AIzaSyAbCqqSwKQ62Q38K-DM15jsZQePloDD8XM",
+  authDomain: "magacinapp-6a8f5.firebaseapp.com",
+  projectId: "magacinapp-6a8f5",
+  storageBucket: "magacinapp-6a8f5.firebasestorage.app",
+  messagingSenderId: "160054879907",
+  appId: "1:160054879907:web:ded639dcd0a9e0a64e4116"
+};
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const listaDiv = document.getElementById("lista");
+    const form = document.getElementById("form");
+
+    async function prikaziArtikli() {
+      listaDiv.innerHTML = "";
+      const querySnapshot = await getDocs(collection(db, "artikli"));
+      querySnapshot.forEach((docu) => {
+        const data = docu.data();
+        listaDiv.innerHTML += `
+          <div style="border:1px solid #ddd; padding:5px; margin:5px;">
+            <b>${data.ime}</b> – ${data.kolicina} ${data.merka} (${data.cena} $)
+            <button onclick="izbrisi('${docu.id}')">Избриши</button>
+          </div>`;
+      });
+    }
+
+    async function dodadiArtikl(e) {
+      e.preventDefault();
+      const ime = form.ime.value;
+      const kolicina = parseFloat(form.kolicina.value);
+      const merka = form.merka.value;
+      const cena = parseFloat(form.cena.value);
+      await addDoc(collection(db, "artikli"), { ime, kolicina, merka, cena });
+      form.reset();
+      prikaziArtikli();
+    }
+
+    async function izbrisi(id) {
+      await deleteDoc(doc(db, "artikli", id));
+      prikaziArtikli();
+    }
+
+    form.addEventListener("submit", dodadiArtikl);
+    window.izbrisi = izbrisi;
+
+    prikaziArtikli();
+  </script>
+</head>
+<body>
+  <h2>📦 Магацинска апликација</h2>
+  <form id="form">
+    <input name="ime" placeholder="Име на артикл" required>
+    <input name="kolicina" type="number" placeholder="Количина" required>
+    <input name="merka" placeholder="Мерка (парче, кг...)" required>
+    <input name="cena" type="number" step="0.01" placeholder="Цена" required>
+    <button type="submit">Додај</button>
+  </form>
+
+  <div id="lista"></div>
+</body>
+</html>
