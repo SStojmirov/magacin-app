@@ -5,28 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Магацин</title>
 <style>
-  body { margin:0; font-family: Arial, sans-serif; height:100vh; display:flex; justify-content:center; align-items:center; background: linear-gradient(135deg,#1f1f1f,#333); }
-  #login-card, #dashboard, .tab { display:none; background:#fff; border-radius:12px; padding:30px; box-shadow:0 8px 20px rgba(0,0,0,0.3); width:350px; text-align:center; max-height:90vh; overflow:auto; }
-  input, button, select { width:100%; padding:10px; margin:5px 0; border-radius:6px; font-size:16px; }
-  button { border:none; background:#007BFF; color:#fff; cursor:pointer; }
-  button:hover { background:#0056b3; }
-  h2{text-align:center;}
-  .menu button { width:90%; margin:8px 0; }
-  .back-btn { background:#555; }
-  #lista, #vnesLista, #izlezLista, #oczekDiv, #kontrolaLista { margin-top:10px; }
-  #lista div, #vnesLista div, #izlezLista div, #oczekDiv div, #kontrolaLista div { padding:5px; border:1px solid #ddd; margin:3px 0; border-radius:5px; text-align:left; }
+body { margin:0; font-family: Arial, sans-serif; background: linear-gradient(135deg,#1f1f1f,#333); display:flex; justify-content:center; align-items:center; min-height:100vh; }
+#login-card, #dashboard, .tab { display:none; background:#fff; border-radius:12px; padding:30px; box-shadow:0 8px 20px rgba(0,0,0,0.3); width:360px; text-align:center; max-height:90vh; overflow:auto; }
+input, button, select { width:100%; padding:10px; margin:5px 0; border-radius:6px; font-size:16px; }
+button { border:none; background:#007BFF; color:#fff; cursor:pointer; }
+button:hover { background:#0056b3; }
+h2{text-align:center;}
+.menu button { width:90%; margin:8px 0; }
+.back-btn { background:#555; }
+#vnesLista, #izlezLista, #lista, #oczekDiv, #kontrolaLista { margin-top:10px; }
+#vnesLista div, #izlezLista div, #lista div, #oczekDiv div, #kontrolaLista div { padding:5px; border:1px solid #ddd; margin:3px 0; border-radius:5px; text-align:left; }
 </style>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, orderBy } 
-  from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, query, where, orderBy } 
+from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-// Firebase конфигурација
+// 🔹 Firebase конфигурација
 const firebaseConfig = {
-  apiKey: "ТВОЈ_API_KEY",
-  authDomain: "ТВОЈ_PROJECT_ID.firebaseapp.com",
-  projectId: "ТВОЈ_PROJECT_ID",
+  apiKey: "AIzaSyAbCqqSwKQ62Q38K-DM15jsZQePloDD8XM",
+  authDomain: "magacinapp-6a8f5.firebaseapp.com",
+  projectId: "magacinapp-6a8f5",
+  storageBucket: "magacinapp-6a8f5.firebasestorage.app",
+  messagingSenderId: "160054879907",
+  appId: "1:160054879907:web:ded639dcd0a9e0a64e4116"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
@@ -35,100 +39,82 @@ const password = "1234";
 const loginCard = document.getElementById("login-card");
 const dashboard = document.getElementById("dashboard");
 
-// Проверка на лозинка во localStorage
+// Проверка на лозинка
 window.addEventListener("load", ()=>{
-  if(localStorage.getItem("magacin_pass")===password){
-    showDashboard();
-  } else {
-    loginCard.style.display="block";
-  }
+  if(localStorage.getItem("magacin_pass")===password){ showDashboard(); } 
+  else { loginCard.style.display="block"; }
 });
 
-// Login
 function checkLogin(){
   const input = document.getElementById("pass").value;
-  if(input===password){
-    localStorage.setItem("magacin_pass",password);
-    showDashboard();
-  } else { alert("Неточна лозинка!"); }
+  if(input===password){ localStorage.setItem("magacin_pass",password); showDashboard(); } 
+  else { alert("Неточна лозинка!"); }
 }
 window.checkLogin=checkLogin;
 
-// Прикажи Dashboard
-function showDashboard(){
-  loginCard.style.display="none";
-  dashboard.style.display="block";
-  hideTabs();
-}
-
-// Табови
+function showDashboard(){ loginCard.style.display="none"; dashboard.style.display="block"; hideTabs(); }
 function hideTabs(){ document.querySelectorAll(".tab").forEach(t=>t.style.display="none"); }
 function showTab(id){ hideTabs(); document.getElementById(id).style.display="block"; }
 window.showTab=showTab;
 
-// Logout
 function logout(){ localStorage.removeItem("magacin_pass"); location.reload(); }
 window.logout=logout;
 
-// Внес на артикли
-async function dodadiArtikl(e,kolekcija,showDiv){
-  e.preventDefault();
-  const ime = e.target.ime.value;
-  const kolicina = parseFloat(e.target.kolicina.value);
-  const merka = e.target.merka.value;
-  const cena = parseFloat(e.target.cena.value);
-  const datum = new Date();
-  const docRef = await addDoc(collection(db,kolekcija),{ime,kolicina,merka,cena,datum});
-  e.target.reset();
-  prikaziArtikli(showDiv,kolekcija,docRef.id);
+// 🔹 Внес со dropdown
+async function loadArtikliDropdown(){
+  const select = document.getElementById("artiklSelect");
+  select.innerHTML="";
+  const snap = await getDocs(collection(db,"artikli"));
+  snap.forEach(docu=>{
+    const data = docu.data();
+    const option = document.createElement("option");
+    option.value=docu.id;
+    option.text=`${data.ime} (${data.merka})`;
+    option.dataset.merka=data.merka;
+    select.appendChild(option);
+  });
 }
-window.dodadiArtikl=dodadiArtikl;
+window.loadArtikliDropdown=loadArtikliDropdown;
+
+async function dodadiMagacin(e){
+  e.preventDefault();
+  const select = document.getElementById("artiklSelect");
+  const docId = select.value;
+  const ime = select.options[select.selectedIndex].text.split(" (")[0];
+  const merka = select.options[select.selectedIndex].dataset.merka;
+  const kolicina = parseFloat(document.getElementById("vnesKolicina").value);
+  const datum = new Date();
+  await addDoc(collection(db,"magacin"),{ime,kolicina,merka,datum});
+  document.getElementById("vnesKolicina").value="";
+  prikaziArtikli("vnesLista","magacin",true);
+}
+window.dodadiMagacin=dodadiMagacin;
 
 // Прикажи артикли
-async function prikaziArtikli(divID,kolekcija,lastId=null){
+async function prikaziArtikli(divID,kolekcija,onlyLast=false){
   const div = document.getElementById(divID);
   div.innerHTML="";
   const snap = await getDocs(collection(db,kolekcija));
   snap.forEach(docu=>{
     const data = docu.data();
-    if(lastId){ // ако има lastId, прикажува само последниот внес
-      if(docu.id===lastId){
-        div.innerHTML=`<div><b>${data.ime}</b> – ${data.kolicina} ${data.merka} (${data.cena}$)</div>`;
-      }
-    } else { // прикажува сè
-      div.innerHTML+=`<div><b>${data.ime}</b> – ${data.kolicina} ${data.merka} (${data.cena}$)</div>`;
-    }
+    if(onlyLast){
+      div.innerHTML=`<div><b>${data.ime}</b> – ${data.kolicina} ${data.merka}</div>`;
+    } else { div.innerHTML+=`<div><b>${data.ime}</b> – ${data.kolicina} ${data.merka}</div>`; }
   });
 }
 
-// Излез на артикли
-async function izlezArtikl(e){
-  e.preventDefault();
-  const ime = e.target.ime.value;
-  const kolicina = parseFloat(e.target.kolicina.value);
-  const snap = await getDocs(collection(db,"artikli"));
-  snap.forEach(async docu=>{
-    const data = docu.data();
-    if(data.ime===ime){
-      const newKolicina = Math.max(0,data.kolicina - kolicina);
-      await updateDoc(doc(db,"artikli",docu.id),{kolicina:newKolicina});
-    }
-  });
-  e.target.reset();
-  prikaziArtikli("lista","artikli");
-}
-window.izlezArtikl=izlezArtikl;
-
-// Контрола на внес по датум
-async function kontrolaVnes(startDate,endDate){
+// 🔹 Контрола по датум
+async function kontrolaVnes(startStr,endStr){
   const div = document.getElementById("kontrolaLista");
   div.innerHTML="";
-  const snap = await getDocs(collection(db,"artikli"));
+  const snap = await getDocs(collection(db,"magacin"));
+  const startDate = new Date(startStr);
+  const endDate = new Date(endStr); endDate.setHours(23,59,59);
   snap.forEach(docu=>{
     const data = docu.data();
     const datum = data.datum.toDate ? data.datum.toDate() : new Date(data.datum);
     if(datum>=startDate && datum<=endDate){
-      div.innerHTML+=`<div><b>${data.ime}</b> – ${data.kolicina} ${data.merka} (${data.cena}$) - ${datum.toLocaleString()}</div>`;
+      div.innerHTML+=`<div><b>${data.ime}</b> – ${data.kolicina} ${data.merka} - ${datum.toLocaleString()}</div>`;
     }
   });
 }
@@ -139,38 +125,63 @@ window.kontrolaVnes=kontrolaVnes;
 
 <!-- Login -->
 <div id="login-card">
-  <h2>🔒 Внеси лозинка</h2>
-  <input type="password" id="pass" placeholder="Лозинка">
-  <button onclick="checkLogin()">Влези</button>
+<h2>🔒 Внеси лозинка</h2>
+<input type="password" id="pass" placeholder="Лозинка">
+<button onclick="checkLogin()">Влези</button>
 </div>
 
 <!-- Dashboard -->
 <div id="dashboard">
-  <h2>📋 Главно мени</h2>
-  <div class="menu">
-    <button onclick="showTab('tabVnes')">Внес на артикли</button>
-    <button onclick="showTab('tabIzlez')">Излез на артикли</button>
-    <button onclick="showTab('tabIzvestaj')">Извештај (моментална состојба)</button>
-    <button onclick="showTab('tabOcekuvano')">Очекувано / Нарачано</button>
-    <button onclick="showTab('tabKontrola')">Контрола на внес</button>
-    <button class="back-btn" onclick="logout()">Logout</button>
-  </div>
+<h2>📋 Главно мени</h2>
+<div class="menu">
+<button onclick="showTab('tabVnes'); loadArtikliDropdown()">Внес на артикли</button>
+<button onclick="showTab('tabIzlez')">Излез на артикли</button>
+<button onclick="showTab('tabIzvestaj')">Извештај (моментална состојба)</button>
+<button onclick="showTab('tabOcekuvano')">Очекувано / Нарачано</button>
+<button onclick="showTab('tabKontrola')">Контрола на внес</button>
+<button class="back-btn" onclick="logout()">Logout</button>
+</div>
 </div>
 
 <!-- Внес на артикли -->
 <div class="tab" id="tabVnes">
-  <h2>➕ Внес на артикли</h2>
-  <form onsubmit="dodadiArtikl(event,'artikli','vnesLista')">
-    <input name="ime" placeholder="Име на артикл" required>
-    <input name="kolicina" type="number" placeholder="Количина" required>
-    <input name="merka" placeholder="Мерка (парче, кг...)" required>
-    <input name="cena" type="number" step="0.01" placeholder="Цена" required>
-    <button type="submit">Додај</button>
-  </form>
-  <div id="vnesLista"></div>
+<h2>➕ Внес на артикли</h2>
+<form onsubmit="dodadiMagacin(event)">
+<select id="artiklSelect" required></select>
+<input type="number" id="vnesKolicina" placeholder="Количина" required>
+<button type="submit">Додај</button>
+</form>
+<div id="vnesLista"></div>
 </div>
 
-<!-- Излез на артикли -->
-<div class="tab" id="tabIzlez">
-  <h2>➖ Излез на артикли</h2>
-  <form onsubmit="izlez
+<!-- Извештај -->
+<div class="tab" id="tabIzvestaj">
+<h2>📊 Моментална состојба</h2>
+<div id="lista"></div>
+<button onclick="prikaziArtikli('lista','magacin')">Обнови</button>
+</div>
+
+<!-- Контрола на внес -->
+<div class="tab" id="tabKontrola">
+<h2>📝 Контрола на внес</h2>
+<label>Од: <input type="date" id="startDate"></label>
+<label>До: <input type="date" id="endDate"></label>
+<button onclick="kontrolaVnes(document.getElementById('startDate').value, document.getElementById('endDate').value)">Прикажи</button>
+<div id="kontrolaLista"></div>
+</div>
+
+<!-- Очекувано / Нарачано -->
+<div class="tab" id="tabOcekuvano">
+<h2>📝 Очекувано / Нарачано</h2>
+<form onsubmit="dodadiArtikl(event,'oczekuvano','oczekDiv')">
+<input name="ime" placeholder="Име на артикл" required>
+<input name="kolicina" type="number" placeholder="Количина" required>
+<input name="merka" placeholder="Мерка" required>
+<input name="cena" type="number" step="0.01" placeholder="Цена" required>
+<button type="submit">Додај</button>
+</form>
+<div id="oczekDiv"></div>
+</div>
+
+</body>
+</html>
