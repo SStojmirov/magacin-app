@@ -55,13 +55,12 @@ function showDashboard(){
 }
 function hideTabs(){ document.querySelectorAll(".tab").forEach(t=>t.style.display="none"); }
 
-// 🔹 Поправка за dropdown: loadArtikliDropdown само по прикажување на табот
 function showTab(id){
   hideTabs();
   const tab = document.getElementById(id);
-  tab.style.display="block";
-  if(id === "tabVnes"){ 
-    setTimeout(loadArtikliDropdown, 10); // кратко задоцнување за да DOM е прикажан
+  if(tab){ 
+    tab.style.display="block";
+    if(id==="tabVnes"){ setTimeout(loadArtikliDropdown, 10); }
   }
 }
 window.showTab=showTab;
@@ -81,11 +80,11 @@ const artikliLista = [
 // 🔹 Dropdown за категорија
 function loadArtikliDropdown(){
   const select = document.getElementById("artiklSelect");
-  if(!select) return; // ако елементот не постои, не прави ништо
+  if(!select) return;
   const kategorija = document.getElementById("kategorijaSelect").value;
   select.innerHTML = "";
   artikliLista.forEach(a => {
-    if(!kategorija || a.kategorija === kategorija){
+    if(!kategorija || a.kategorija===kategorija){
       const option = document.createElement("option");
       option.value = a.ime;
       option.text = `${a.ime} (${a.merka})`;
@@ -147,6 +146,7 @@ async function kontrolaVnes(startStr,endStr){
   });
 }
 window.kontrolaVnes=kontrolaVnes;
+
 </script>
 </head>
 <body>
@@ -166,4 +166,19 @@ window.kontrolaVnes=kontrolaVnes;
 <button onclick="showTab('tabIzlez')">Излез на артикли</button>
 <button onclick="showTab('tabIzvestaj')">Извештај (моментална состојба)</button>
 <button onclick="showTab('tabOcekuvano')">Очекувано / Нарачано</button>
-<button onclick="showTab('tabKontrola')">Конт
+<button onclick="showTab('tabKontrola')">Контрола на внес</button>
+<button class="back-btn" onclick="logout()">Logout</button>
+</div>
+</div>
+
+<!-- TAB: Внес на артикли -->
+<div class="tab" id="tabVnes">
+<h2>➕ Внес на артикли</h2>
+<select id="kategorijaSelect" onchange="loadArtikliDropdown()">
+  <option value="">Сите категории</option>
+  <option value="Млечни">Млечни</option>
+  <option value="Овошје">Овошје</option>
+  <option value="Зеленчук">Зеленчук</option>
+</select>
+<select id="artiklSelect"></select>
+<input type="number" id="vnesKolicina" placeholder="
