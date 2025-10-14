@@ -63,12 +63,12 @@
 
     <div id="izvestajDiv" class="hidden card">
       <h3>Моментална состојба</h3>
-      <div id="izvestajList"></div>
       <label>Филтер по категорија:</label>
 <select id="izvestajCatSelect">
   <option value="">Сите категории</option>
 </select>
 <div id="izvestajList"></div>
+
 
     </div>
 
@@ -243,14 +243,21 @@ async function dodadiIzlez(){
 }
 
 
-async function loadIzvestaj(){
+// Пополнување dropdown со категории
+function loadIzvestajCategories(){
   const catSelect = document.getElementById('izvestajCatSelect');
-  const selectedCat = catSelect.value;
+  catSelect.innerHTML = '<option value="">Сите категории</option>'; // најгоре
+  const cats = [...new Set(artikliData.map(a=>a.kategorija))];
+  cats.forEach(c => { catSelect.innerHTML += `<option value="${c}">${c}</option>`; });
+}
+
+// Вчитување на извештај со боја и филтер по категорија
+async function loadIzvestaj(){
+  const selectedCat = document.getElementById('izvestajCatSelect').value;
 
   const snap = await db.collection('promet').get();
   const records = snap.docs.map(d=>d.data());
 
-  // Пресметка на моментална количина за секој артикл
   const map = new Map();
   records.forEach(r=>{
     const key = r.artiklId;
@@ -259,11 +266,11 @@ async function loadIzvestaj(){
     map.set(key, cur);
   });
 
-  // Претвори во листа и филтрирај по категорија ако е избрана
+  // Филтрирај по категорија ако е избрана
   let list = Array.from(map.values());
   if(selectedCat) list = list.filter(a => a.kategorija === selectedCat);
 
-  // Сортирај артикли кои се под минимум на почеток
+  // Сортирај со артикли под минимум на почеток
   list.sort((a,b)=>{
     const aLow = a.kolicina <= a.minKolicina ? 0 : 1;
     const bLow = b.kolicina <= b.minKolicina ? 0 : 1;
@@ -274,9 +281,7 @@ async function loadIzvestaj(){
   const div = document.getElementById('izvestajList');
   div.innerHTML='';
   list.forEach(a=>{
-    let cls='green';
-    if(a.kolicina <= a.minKolicina) cls='orange';
-    else if(a.kolicina <= a.minKolicina*2) cls='red';
+    const cls = a.kolicina <= a.minKolicina ? 'red' : 'green';
     div.innerHTML += `<div class='card ${cls}'>${a.ime} (${a.merka}) - ${a.kolicina}</div>`;
   });
 }
@@ -286,26 +291,6 @@ document.getElementById('izvestajCatSelect').addEventListener('change', ()=>{
   loadIzvestaj();
 });
 
-// Пополнување dropdown со категории при вчитување
-function loadIzvestajCategories(){
-  const catSelect = document.getElementById('izvestajCatSelect');
-  const cats = [...new Set(artikliData.map(a=>a.kategorija))];
-  cats.forEach(c => { catSelect.innerHTML += `<option value="${c}">${c}</option>`; });
-}
-
-
-async function loadOcek(){
-  const sel = document.getElementById('ocekSelect');
-  sel.innerHTML='';
-  artikliData.forEach(a=>{ sel.innerHTML+=`<option value='${a.id}'>${a.ime} (${a.merka})</option>` });
-  const snap = await db.collection('ocekivano').get();
-  const div = document.getElementById('ocekList');
-  div.innerHTML='';
-  snap.docs.forEach(d=>{
-    const r = d.data();
-    div.innerHTML+=`<div class='card'>${r.ime} (${r.merka}) - ${r.kolicina}</div>`;
-  });
-}
 
 async function dodadiOcek(){
   const aId = document.getElementById('ocekSelect').value;
