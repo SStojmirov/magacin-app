@@ -148,18 +148,57 @@ async function dodadiVnes(){
 async function loadIzlez(){
   const sel = document.getElementById('izlezSelect');
   sel.innerHTML='';
-  artikliData.forEach(a=>{ sel.innerHTML+=`<option value='${a.id}'>${a.ime} (${a.merka})</option>` });
+
+  // Прво пресметај моментална количина за секој артикл
+  const snap = await db.collection('promet').get();
+  const records = snap.docs.map(d=>d.data());
+  const map = new Map();
+  records.forEach(r=>{
+    const key = r.artiklId;
+    const cur = map.get(key) || { kolicina:0 };
+    cur.kolicina += (r.tip==='vnes' ? r.kolicina : -r.kolicina);
+    map.set(key, cur);
+  });
+
+  // Сега додај во dropdown само артиклите со количина > 0
+  artikliData.forEach(a=>{
+    const kolicina = map.get(a.id)?.kolicina || 0;
+    if(kolicina > 0){
+      sel.innerHTML += `<option value='${a.id}'>${a.ime} (${kolicina} ${a.merka})</option>`;
+    }
+  });
 }
+
+// Проверка при внес на излез
 async function dodadiIzlez(){
   const aId = document.getElementById('izlezSelect').value;
   const k = Number(document.getElementById('izlezKolicina').value);
   if(!aId||!k){ alert('Пополни полиња'); return; }
+
+  // Проверка за достапна количина
+  const snap = await db.collection('promet').get();
+  const records = snap.docs.map(d=>d.data());
+  const map = new Map();
+  records.forEach(r=>{
+    const key = r.artiklId;
+    const cur = map.get(key) || { kolicina:0 };
+    cur.kolicina += (r.tip==='vnes' ? r.kolicina : -r.kolicina);
+    map.set(key, cur);
+  });
+  const dostupno = map.get(aId)?.kolicina || 0;
+  if(k > dostupno){
+    alert(`Немаш доволно количина! Достапно: ${dostupno}`);
+    return;
+  }
+
   const a = artikliData.find(x=>x.id===aId);
   await db.collection('promet').add({
     artiklId:a.id, ime:a.ime, merka:a.merka, kategorija:a.kategorija, kolicina:k, tip:'izlez', datum:new Date()
   });
+
   document.getElementById('izlezKolicina').value='';
   loadIzvestaj();
+  loadIzlez(); // обнови dropdown
 }
 
 async function loadIzvestaj(){
