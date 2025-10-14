@@ -51,14 +51,14 @@
     </div>
 
     <div id="izlezDiv" class="hidden card">
-      <h3>Излез од магацин</h3>
       <label>Категорија:</label>
-      <select id="izlezCatSelect"></select><br>
-      <label>Артикл:</label>
-      <select id="izlezSelect"></select><br>
-      <label>Количина:</label>
-      <input type="number" id="izlezKolicina"><br>
-      <button onclick="dodadiIzlez()">Додади Излез</button>
+<select id="izlezCatSelect"></select><br>
+<label>Артикл:</label>
+<select id="izlezSelect"></select><br>
+<label>Количина:</label>
+<input type="number" id="izlezKolicina"><br>
+<button onclick="dodadiIzlez()">Додади Излез</button>
+
     </div>
 
     <div id="izvestajDiv" class="hidden card">
@@ -147,6 +147,7 @@ async function dodadiVnes(){
   loadIzvestaj();
 }
 
+// Вчитување на артикли во табот „Излез“
 async function loadIzlez(){
   const catSelect = document.getElementById('izlezCatSelect');
   const sel = document.getElementById('izlezSelect');
@@ -164,11 +165,11 @@ async function loadIzlez(){
     map.set(key, cur);
   });
 
-  // Додај категории
+  // Додавање на категории
   const cats = [...new Set(artikliData.map(a=>a.kategorija))];
   cats.forEach(c => { catSelect.innerHTML += `<option value="${c}">${c}</option>`; });
 
-  // Додај артикли со количина > 0
+  // Додавање на артикли со количина > 0
   artikliData.forEach(a=>{
     const kolicina = map.get(a.id)?.kolicina || 0;
     if(kolicina > 0){
@@ -178,11 +179,11 @@ async function loadIzlez(){
 }
 
 // Филтрирање по категорија
-document.getElementById('izlezCatSelect').addEventListener('change', ()=>{
+document.getElementById('izlezCatSelect').addEventListener('change', async ()=>{
   const cat = document.getElementById('izlezCatSelect').value;
   const sel = document.getElementById('izlezSelect');
   sel.innerHTML='';
-  
+
   // Пресметка на количина
   const snap = await db.collection('promet').get();
   const records = snap.docs.map(d=>d.data());
@@ -202,13 +203,13 @@ document.getElementById('izlezCatSelect').addEventListener('change', ()=>{
   });
 });
 
-// Проверка при внес на излез
+// Внес на излез со проверка за достапна количина
 async function dodadiIzlez(){
   const aId = document.getElementById('izlezSelect').value;
   const k = Number(document.getElementById('izlezKolicina').value);
   if(!aId||!k){ alert('Пополни полиња'); return; }
 
-  // Проверка за достапна количина
+  // Пресметка на моментална количина
   const snap = await db.collection('promet').get();
   const records = snap.docs.map(d=>d.data());
   const map = new Map();
@@ -218,6 +219,7 @@ async function dodadiIzlez(){
     cur.kolicina += (r.tip==='vnes' ? r.kolicina : -r.kolicina);
     map.set(key, cur);
   });
+
   const dostupno = map.get(aId)?.kolicina || 0;
   if(k > dostupno){
     alert(`Немаш доволно количина! Достапно: ${dostupno}`);
@@ -233,6 +235,7 @@ async function dodadiIzlez(){
   loadIzvestaj();
   loadIzlez(); // обнови dropdown
 }
+
 
 async function loadIzvestaj(){
   const snap = await db.collection('promet').get();
