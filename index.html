@@ -135,13 +135,15 @@
   <h3>Очекувано (нарачано)</h3>
 
   <label>Категорија:</label>
-  <select id="ocekCatSelect" onchange="loadOcekArtikli()"></select><br>
+  <select id="ocekCatSelect" onchange="loadOcekArtikli()">
+    <option value="">Избери категорија</option>
+  </select><br>
 
   <label>Артикл:</label>
   <select id="ocekSelect"></select><br>
 
   <label>Количина:</label>
-  <input type="number" id="ocekKolicina" inputmode="numeric" pattern="[0-9]*" placeholder="Внеси количина"><br>
+  <input type="number" id="ocekKolicina" min="1" placeholder="Внеси количина"><br>
 
   <label>Очекуван датум:</label>
   <input type="date" id="ocekDatum"><br>
@@ -150,7 +152,6 @@
 
   <div id="ocekList" style="margin-top:10px;"></div>
 </div>
-
 </div>
 </div>
 
@@ -381,16 +382,23 @@ function initIzvestaj(){
   loadIzvestaj();
 }
 
-// Стартување
-loadArtikliFirebase();
+let artikliData = []; // глобална листа со артикли од Firebase
 
-  function loadOcekCategories() {
+// --- Вчитување артикли од Firebase
+async function loadArtikliData() {
+  const snapshot = await firebase.firestore().collection('artikli').get();
+  artikliData = snapshot.docs.map(doc => doc.data());
+
+  // Пополнување на категориите за таб „Очекувано“
+  loadOcekCategories();
+}
+
+// --- Пополнување категории во dropdown
+function loadOcekCategories() {
   const ocekCatSelect = document.getElementById('ocekCatSelect');
-  ocekCatSelect.innerHTML = '<option value="">Избери категорија</option>'; // празни
+  ocekCatSelect.innerHTML = '<option value="">Избери категорија</option>';
 
-  if(!artikliData || !artikliData.length) return;
-
-  const categoriesSet = new Set(); // сет за уникатни категории
+  const categoriesSet = new Set();
   artikliData.forEach(a => categoriesSet.add(a.kategorija));
 
   categoriesSet.forEach(cat => {
@@ -401,51 +409,38 @@ loadArtikliFirebase();
   });
 }
 
-// Вчитување на артикли од Firebase
-async function loadArtikliData() {
-  const snapshot = await firebase.firestore().collection('artikli').get();
-  artikliData = snapshot.docs.map(doc => doc.data());
-
-  // Пополнување на категориите за Очекувано
-  loadOcekCategories();
-}
-
-// Функција за филтрирање артикли по категорија
+// --- Пополнување артикли за избрана категорија
 function loadOcekArtikli() {
   const ocekSelect = document.getElementById('ocekSelect');
   const selectedCat = document.getElementById('ocekCatSelect').value;
-  ocekSelect.innerHTML = ''; // празни пред пополнување
+  ocekSelect.innerHTML = '';
 
-  if(!selectedCat || !artikliData) return;
+  if (!selectedCat) return;
 
-  const filteredArtikli = artikliData.filter(a => a.kategorija === selectedCat);
+  const filtered = artikliData.filter(a => a.kategorija === selectedCat);
 
-  if(filteredArtikli.length === 0){
+  if (filtered.length === 0) {
     const option = document.createElement('option');
     option.value = '';
     option.textContent = 'Нема артикли за оваа категорија';
     ocekSelect.appendChild(option);
   } else {
-    filteredArtikli.forEach(a => {
+    filtered.forEach(a => {
       const option = document.createElement('option');
-      option.value = a.naziv;       // мора да се поклопува со полето во Firebase
+      option.value = a.naziv;
       option.textContent = a.naziv;
       ocekSelect.appendChild(option);
     });
   }
 }
 
-// При load на апликацијата
-loadArtikliData();
-
-
-// --- Додавање очекувано во Firebase ---
+// --- Додавање очекувано во Firebase
 function dodadiOcek() {
   const artikl = document.getElementById('ocekSelect').value;
   const kolicina = Number(document.getElementById('ocekKolicina').value);
   const datum = document.getElementById('ocekDatum').value;
 
-  if(!artikl || !kolicina || !datum){
+  if (!artikl || !kolicina || !datum) {
     alert('Внеси артикл, количина и датум!');
     return;
   }
@@ -459,11 +454,12 @@ function dodadiOcek() {
   .then(() => {
     document.getElementById('ocekKolicina').value = '';
     document.getElementById('ocekDatum').value = '';
-    loadOcek();
-  });
+    loadOcek(); // освежи ја листата
+  })
+  .catch(err => console.error('Грешка при додавање:', err));
 }
 
-// --- Прикажување на внесеното очекувано ---
+// --- Прикажување на внесеното очекувано
 function loadOcek() {
   const ocekList = document.getElementById('ocekList');
   ocekList.innerHTML = '';
@@ -474,6 +470,7 @@ function loadOcek() {
     .then(snapshot => {
       snapshot.forEach(doc => {
         const data = doc.data();
+
         const div = document.createElement('div');
         div.classList.add('card');
         div.style.display = 'flex';
@@ -487,7 +484,7 @@ function loadOcek() {
         const delBtn = document.createElement('button');
         delBtn.textContent = 'Избриши';
         delBtn.onclick = () => {
-          if(confirm('Дали си сигурен дека сакаш да го избришеш?')) {
+          if (confirm('Дали си сигурен дека сакаш да го избришеш?')) {
             firebase.firestore().collection('ocekuvano').doc(doc.id).delete()
               .then(() => loadOcek());
           }
@@ -500,9 +497,10 @@ function loadOcek() {
     });
 }
 
-// --- Повикај при load ---
-loadOcekCategories();
+// --- Повикај при старт на апликацијата
+loadArtikliData();
 loadOcek();
+
 
 
   function showTab(tab) {
