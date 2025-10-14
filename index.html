@@ -404,22 +404,35 @@ loadArtikliFirebase();
 function loadOcekArtikli() {
   const ocekSelect = document.getElementById('ocekSelect');
   const selectedCat = document.getElementById('ocekCatSelect').value;
-  ocekSelect.innerHTML = '';
+  ocekSelect.innerHTML = ''; // празни пред пополнување
 
-  if(!selectedCat) return;
+  if (!selectedCat) return;
 
   firebase.firestore().collection('artikli')
-    .where('kategorija', '==', selectedCat)
     .get()
     .then(snapshot => {
-      snapshot.forEach(doc => {
+      // филтрирај артикли за избраната категорија
+      const filteredArtikli = snapshot.docs
+        .map(doc => doc.data())
+        .filter(a => a.kategorija === selectedCat);
+
+      if (filteredArtikli.length === 0) {
         const option = document.createElement('option');
-        option.value = doc.data().naziv;
-        option.textContent = doc.data().naziv;
+        option.value = '';
+        option.textContent = 'Нема артикли за оваа категорија';
         ocekSelect.appendChild(option);
-      });
-    });
+      } else {
+        filteredArtikli.forEach(a => {
+          const option = document.createElement('option');
+          option.value = a.naziv;       // мора да се поклопува со полето во Firebase
+          option.textContent = a.naziv; // текстот за прикажување
+          ocekSelect.appendChild(option);
+        });
+      }
+    })
+    .catch(err => console.error('Грешка при вчитување артикли:', err));
 }
+
 
 // --- Додавање очекувано во Firebase ---
 function dodadiOcek() {
