@@ -409,7 +409,7 @@ function loadOcekArtikli() {
   const ocekSelect = document.getElementById('ocekSelect');
   const selectedCat = document.getElementById('ocekCatSelect').value;
 
-  ocekSelect.innerHTML = '';
+  ocekSelect.innerHTML = ''; // празни пред пополнување
 
   if(!selectedCat) return;
 
@@ -417,13 +417,18 @@ function loadOcekArtikli() {
     .where('kategorija', '==', selectedCat)
     .get()
     .then(snapshot => {
+      if(snapshot.empty){
+        console.warn("Нема артикли за оваа категорија!");
+      }
       snapshot.forEach(doc => {
+        const data = doc.data();
         const option = document.createElement('option');
-        option.value = doc.data().naziv;
-        option.textContent = doc.data().naziv;
+        option.value = data.naziv;
+        option.textContent = data.naziv;
         ocekSelect.appendChild(option);
       });
-    });
+    })
+    .catch(err => console.error('Грешка при вчитување артикли:', err));
 }
 
 // --- Додавање во Firebase ---
