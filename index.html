@@ -384,24 +384,20 @@ function initIzvestaj(){
 // Стартување
 loadArtikliFirebase();
 
-  // --- Пополнување категории ---
+  // --- Пополнување категории исто како во Внес ---
 function loadOcekCategories() {
   const ocekCatSelect = document.getElementById('ocekCatSelect');
   ocekCatSelect.innerHTML = '<option value="">Избери категорија</option>';
 
-  firebase.firestore().collection('artikli')
-    .get()
-    .then(snapshot => {
-      const categories = new Set();
-      snapshot.forEach(doc => categories.add(doc.data().kategorija));
+  const categoriesSet = new Set();
+  artikliData.forEach(a => categoriesSet.add(a.kategorija));
 
-      categories.forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat;
-        option.textContent = cat;
-        ocekCatSelect.appendChild(option);
-      });
-    });
+  categoriesSet.forEach(cat => {
+    const option = document.createElement('option');
+    option.value = cat;
+    option.textContent = cat;
+    ocekCatSelect.appendChild(option);
+  });
 }
 
 // --- Пополнување артикли за избрана категорија ---
@@ -409,26 +405,16 @@ function loadOcekArtikli() {
   const ocekSelect = document.getElementById('ocekSelect');
   const selectedCat = document.getElementById('ocekCatSelect').value;
 
-  ocekSelect.innerHTML = ''; // празни пред пополнување
-
+  ocekSelect.innerHTML = '';
   if(!selectedCat) return;
 
-  firebase.firestore().collection('artikli')
-    .where('kategorija', '==', selectedCat)
-    .get()
-    .then(snapshot => {
-      if(snapshot.empty){
-        console.warn("Нема артикли за оваа категорија!");
-      }
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const option = document.createElement('option');
-        option.value = data.naziv;
-        option.textContent = data.naziv;
-        ocekSelect.appendChild(option);
-      });
-    })
-    .catch(err => console.error('Грешка при вчитување артикли:', err));
+  const filteredArtikli = artikliData.filter(a => a.kategorija === selectedCat);
+  filteredArtikli.forEach(a => {
+    const option = document.createElement('option');
+    option.value = a.naziv;
+    option.textContent = a.naziv;
+    ocekSelect.appendChild(option);
+  });
 }
 
 // --- Додавање во Firebase ---
@@ -437,7 +423,7 @@ function dodadiOcek() {
   const kolicina = Number(document.getElementById('ocekKolicina').value);
   const datum = document.getElementById('ocekDatum').value;
 
-  if(!artikl || !kolicina || !datum) {
+  if(!artikl || !kolicina || !datum){
     alert('Внеси артикл, количина и датум!');
     return;
   }
@@ -455,7 +441,7 @@ function dodadiOcek() {
   });
 }
 
-// --- Прикажување на внесеното очекувано со копче за бришење ---
+// --- Прикажување на внесеното очекувано со бришење ---
 function loadOcek() {
   const ocekList = document.getElementById('ocekList');
   ocekList.innerHTML = '';
@@ -492,7 +478,7 @@ function loadOcek() {
     });
 }
 
-// --- Повикај при load на апликацијата ---
+// --- Повикај при load ---
 loadOcekCategories();
 loadOcek();
 
