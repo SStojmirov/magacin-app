@@ -13,7 +13,7 @@
     button { background-color: #374151; color: #f3f4f6; border: none; padding: 10px 15px; margin: 5px; border-radius:5px; cursor: pointer; }
     button:hover { background-color: #4b5563; }
     select, input { padding: 5px; border-radius: 5px; border: none; background-color: #374151; color: #f3f4f6; }
-    #izvestajContainer {
+   #izvestajContainer {
   margin-top: 20px;
 }
 
@@ -26,6 +26,7 @@
 
 .card.green { background-color: #c8e6c9; }  /* над минимум */
 .card.red { background-color: #ffcdd2; }    /* под минимум */
+
   </style>
 </head>
 <body>
@@ -74,10 +75,11 @@
       <h3>Моментална состојба</h3>
       <div id="izvestajContainer">
   <label>Филтер по категорија:</label>
-  <select id="izvestajCatSelect"></select>
+  <select id="izvestajCatSelect">
+    <option value="">Сите категории</option>
+  </select>
   <div id="izvestajList"></div>
 </div>
-
 
 
     </div>
@@ -253,20 +255,20 @@ async function dodadiIzlez(){
 }
 
 
+// Функција за вчитување на категориите во dropdown
 function loadIzvestajCategories(){
   const catSelect = document.getElementById('izvestajCatSelect');
   catSelect.innerHTML = '<option value="">Сите категории</option>'; // најгоре
 
-  // Проверуваме дали artikliData е дефинирано
   if(!artikliData || !artikliData.length) return;
 
-  const cats = [...new Set(artikliData.map(a=>a.kategorija))]; // уникатни категории
+  const cats = [...new Set(artikliData.map(a=>a.kategorija))];
   cats.forEach(c => { 
     catSelect.innerHTML += `<option value="${c}">${c}</option>`; 
   });
 }
 
-// Вчитување на извештај со боја и филтер по категорија
+// Функција за прикажување на извештај
 async function loadIzvestaj(){
   const selectedCat = document.getElementById('izvestajCatSelect').value;
 
@@ -310,9 +312,18 @@ document.getElementById('izvestajCatSelect').addEventListener('change', ()=>{
   loadIzvestaj();
 });
 
-// Повик при стартување на страната
-loadIzvestajCategories();
-loadIzvestaj();
+// Повик при стартување на страната (по вчитување на artikliData)
+async function initIzvestaj(){
+  // Чекај да се вчита artikliData пред да пополнуваш категории
+  if(!artikliData || !artikliData.length){
+    await loadArtikliData(); // твојата функција за вчитување артикли
+  }
+  loadIzvestajCategories();
+  loadIzvestaj();
+}
+
+// стартување
+initIzvestaj();
 
 
 async function loadOcek(){
