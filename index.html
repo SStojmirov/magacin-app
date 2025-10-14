@@ -382,16 +382,7 @@ function initIzvestaj(){
   loadIzvestaj();
 }
 
-let artikliData = []; // глобална листа со артикли од Firebase
-
-// --- Вчитување артикли од Firebase
-async function loadArtikliData() {
-  const snapshot = await firebase.firestore().collection('artikli').get();
-  artikliData = snapshot.docs.map(doc => doc.data());
-
-  // Пополнување на категориите за таб „Очекувано“
-  loadOcekCategories();
-}
+// Не декларирај повторно artikliData, користи ја глобалната што веќе постои
 
 // --- Пополнување категории во dropdown
 function loadOcekCategories() {
@@ -438,69 +429,6 @@ function loadOcekArtikli() {
 function dodadiOcek() {
   const artikl = document.getElementById('ocekSelect').value;
   const kolicina = Number(document.getElementById('ocekKolicina').value);
-  const datum = document.getElementById('ocekDatum').value;
-
-  if (!artikl || !kolicina || !datum) {
-    alert('Внеси артикл, количина и датум!');
-    return;
-  }
-
-  firebase.firestore().collection('ocekuvano').add({
-    artikl: artikl,
-    kolicina: kolicina,
-    datum: datum,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  })
-  .then(() => {
-    document.getElementById('ocekKolicina').value = '';
-    document.getElementById('ocekDatum').value = '';
-    loadOcek(); // освежи ја листата
-  })
-  .catch(err => console.error('Грешка при додавање:', err));
-}
-
-// --- Прикажување на внесеното очекувано
-function loadOcek() {
-  const ocekList = document.getElementById('ocekList');
-  ocekList.innerHTML = '';
-
-  firebase.firestore().collection('ocekuvano')
-    .orderBy('timestamp', 'desc')
-    .get()
-    .then(snapshot => {
-      snapshot.forEach(doc => {
-        const data = doc.data();
-
-        const div = document.createElement('div');
-        div.classList.add('card');
-        div.style.display = 'flex';
-        div.style.justifyContent = 'space-between';
-        div.style.alignItems = 'center';
-        div.style.marginBottom = '4px';
-
-        const text = document.createElement('span');
-        text.textContent = `${data.artikl} - ${data.kolicina} | Очекуван датум: ${data.datum}`;
-
-        const delBtn = document.createElement('button');
-        delBtn.textContent = 'Избриши';
-        delBtn.onclick = () => {
-          if (confirm('Дали си сигурен дека сакаш да го избришеш?')) {
-            firebase.firestore().collection('ocekuvano').doc(doc.id).delete()
-              .then(() => loadOcek());
-          }
-        };
-
-        div.appendChild(text);
-        div.appendChild(delBtn);
-        ocekList.appendChild(div);
-      });
-    });
-}
-
-// --- Повикај при старт на апликацијата
-loadArtikliData();
-loadOcek();
-
 
 
   function showTab(tab) {
