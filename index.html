@@ -384,40 +384,41 @@ function initIzvestaj(){
 // Стартување
 loadArtikliFirebase();
 
-  // --- Пополнување категории исто како во Внес ---
-function loadOcekCategories() {
+  function loadOcekCategories() {
   const ocekCatSelect = document.getElementById('ocekCatSelect');
   ocekCatSelect.innerHTML = '<option value="">Избери категорија</option>';
 
-  if(!artikliData || !artikliData.length) return;
+  firebase.firestore().collection('artikli').get().then(snapshot => {
+    const categoriesSet = new Set();
+    snapshot.forEach(doc => categoriesSet.add(doc.data().kategorija));
 
-  const categoriesSet = new Set();
-  artikliData.forEach(a => categoriesSet.add(a.kategorija));
-
-  categoriesSet.forEach(cat => {
-    const option = document.createElement('option');
-    option.value = cat;
-    option.textContent = cat;
-    ocekCatSelect.appendChild(option);
+    categoriesSet.forEach(cat => {
+      const option = document.createElement('option');
+      option.value = cat;
+      option.textContent = cat;
+      ocekCatSelect.appendChild(option);
+    });
   });
 }
 
-// --- Пополнување артикли за избрана категорија ---
 function loadOcekArtikli() {
   const ocekSelect = document.getElementById('ocekSelect');
   const selectedCat = document.getElementById('ocekCatSelect').value;
-
   ocekSelect.innerHTML = '';
 
   if(!selectedCat) return;
 
-  const filteredArtikli = artikliData.filter(a => a.kategorija === selectedCat);
-  filteredArtikli.forEach(a => {
-    const option = document.createElement('option');
-    option.value = a.naziv;
-    option.textContent = a.naziv;
-    ocekSelect.appendChild(option);
-  });
+  firebase.firestore().collection('artikli')
+    .where('kategorija', '==', selectedCat)
+    .get()
+    .then(snapshot => {
+      snapshot.forEach(doc => {
+        const option = document.createElement('option');
+        option.value = doc.data().naziv;
+        option.textContent = doc.data().naziv;
+        ocekSelect.appendChild(option);
+      });
+    });
 }
 
 // --- Додавање очекувано во Firebase ---
