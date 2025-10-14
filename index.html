@@ -386,65 +386,57 @@ loadArtikliFirebase();
 
   function loadOcekCategories() {
   const ocekCatSelect = document.getElementById('ocekCatSelect');
-  ocekCatSelect.innerHTML = '<option value="">Избери категорија</option>';
+  ocekCatSelect.innerHTML = '<option value="">Избери категорија</option>'; // празни
 
-  firebase.firestore().collection('artikli').get().then(snapshot => {
-    const categoriesSet = new Set();
-    snapshot.forEach(doc => categoriesSet.add(doc.data().kategorija));
+  if(!artikliData || !artikliData.length) return;
 
-    categoriesSet.forEach(cat => {
-      const option = document.createElement('option');
-      option.value = cat;
-      option.textContent = cat;
-      ocekCatSelect.appendChild(option);
-    });
+  const categoriesSet = new Set(); // сет за уникатни категории
+  artikliData.forEach(a => categoriesSet.add(a.kategorija));
+
+  categoriesSet.forEach(cat => {
+    const option = document.createElement('option');
+    option.value = cat;
+    option.textContent = cat;
+    ocekCatSelect.appendChild(option);
   });
 }
 
-  // Функција за вчитување артикули од Firebase и пополнување artikliData
+// Вчитување на артикли од Firebase
 async function loadArtikliData() {
   const snapshot = await firebase.firestore().collection('artikli').get();
   artikliData = snapshot.docs.map(doc => doc.data());
+
+  // Пополнување на категориите за Очекувано
+  loadOcekCategories();
 }
 
-// Повикај при load на апликацијата
-loadArtikliData().then(() => {
-  // сега може да се пополнат категориите и артиклите во „Очекувано“
-  loadOcekCategories();
-});
-
-
+// Функција за филтрирање артикли по категорија
 function loadOcekArtikli() {
   const ocekSelect = document.getElementById('ocekSelect');
   const selectedCat = document.getElementById('ocekCatSelect').value;
   ocekSelect.innerHTML = ''; // празни пред пополнување
 
-  if (!selectedCat) return;
+  if(!selectedCat || !artikliData) return;
 
-  firebase.firestore().collection('artikli')
-    .get()
-    .then(snapshot => {
-      // филтрирај артикли за избраната категорија
-      const filteredArtikli = snapshot.docs
-        .map(doc => doc.data())
-        .filter(a => a.kategorija === selectedCat);
+  const filteredArtikli = artikliData.filter(a => a.kategorija === selectedCat);
 
-      if (filteredArtikli.length === 0) {
-        const option = document.createElement('option');
-        option.value = '';
-        option.textContent = 'Нема артикли за оваа категорија';
-        ocekSelect.appendChild(option);
-      } else {
-        filteredArtikli.forEach(a => {
-          const option = document.createElement('option');
-          option.value = a.naziv;       // мора да се поклопува со полето во Firebase
-          option.textContent = a.naziv; // текстот за прикажување
-          ocekSelect.appendChild(option);
-        });
-      }
-    })
-    .catch(err => console.error('Грешка при вчитување артикли:', err));
+  if(filteredArtikli.length === 0){
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = 'Нема артикли за оваа категорија';
+    ocekSelect.appendChild(option);
+  } else {
+    filteredArtikli.forEach(a => {
+      const option = document.createElement('option');
+      option.value = a.naziv;       // мора да се поклопува со полето во Firebase
+      option.textContent = a.naziv;
+      ocekSelect.appendChild(option);
+    });
+  }
 }
+
+// При load на апликацијата
+loadArtikliData();
 
 
 // --- Додавање очекувано во Firebase ---
