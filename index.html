@@ -1,28 +1,82 @@
 <!DOCTYPE html>
 <html lang="mk">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Магацин</title>
-<style>
-body { margin:0; font-family: Arial, sans-serif; background: linear-gradient(135deg,#1f1f1f,#333); display:flex; justify-content:center; align-items:center; min-height:100vh; }
-#login-card, #dashboard, .tab { display:none; background:#fff; border-radius:12px; padding:30px; box-shadow:0 8px 20px rgba(0,0,0,0.3); width:360px; text-align:center; max-height:90vh; overflow:auto; }
-input, button, select { width:100%; padding:10px; margin:5px 0; border-radius:6px; font-size:16px; }
-button { border:none; background:#007BFF; color:#fff; cursor:pointer; }
-button:hover { background:#0056b3; }
-h2{text-align:center;}
-.menu button { width:90%; margin:8px 0; }
-.back-btn { background:#555; }
-#vnesLista, #izlezLista, #lista, #oczekDiv, #kontrolaLista { margin-top:10px; }
-#vnesLista div, #izlezLista div, #lista div, #oczekDiv div, #kontrolaLista div { padding:5px; border:1px solid #ddd; margin:3px 0; border-radius:5px; text-align:left; }
-.red { color:red; font-weight:bold; }
-</style>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, Timestamp } 
-from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Магацин Апликација</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <style>
+    body { background-color: #1f2937; color: #f3f4f6; font-family: Arial, sans-serif; margin:0; padding:0; }
+    .container { max-width: 800px; margin: 20px auto; padding: 20px; }
+    .hidden { display: none; }
+    button { background-color: #374151; color: #f3f4f6; border: none; padding: 10px 15px; margin: 5px; border-radius:5px; cursor: pointer; }
+    button:hover { background-color: #4b5563; }
+    select, input { padding: 5px; border-radius: 5px; border: none; background-color: #374151; color: #f3f4f6; }
+    .card { padding: 15px; background-color: #374151; border-radius: 8px; margin: 10px 0; }
+    .red { background-color: #b91c1c; }
+    .orange { background-color: #ea580c; }
+    .green { background-color: #16a34a; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Магацин Апликација</h1>
 
-// 🔹 Firebase конфиг
+  <div id="loginDiv">
+    <h2>Лозинка за пристап</h2>
+    <input type="password" id="passInput" placeholder="Лозинка">
+    <button onclick="login()">Влези</button>
+  </div>
+
+  <div id="appDiv" class="hidden">
+    <div id="menuDiv">
+      <button onclick="showTab('vnes')">Внес</button>
+      <button onclick="showTab('izlez')">Излез</button>
+      <button onclick="showTab('izvestaj')">Извештај</button>
+      <button onclick="showTab('ocekivano')">Очекувано</button>
+      <button onclick="logout()">ЛогАут</button>
+    </div>
+
+    <div id="vnesDiv" class="hidden card">
+      <h3>Внес на артикл</h3>
+      <label>Категорија:</label>
+      <select id="catSelect"></select><br>
+      <label>Артикл:</label>
+      <select id="artiklSelect"></select><br>
+      <label>Количина:</label>
+      <input type="number" id="vnesKolicina"><br>
+      <button onclick="dodadiVnes()">Додади</button>
+      <div id="lastVnes"></div>
+    </div>
+
+    <div id="izlezDiv" class="hidden card">
+      <h3>Излез од магацин</h3>
+      <label>Артикл:</label>
+      <select id="izlezSelect"></select><br>
+      <label>Количина:</label>
+      <input type="number" id="izlezKolicina"><br>
+      <button onclick="dodadiIzlez()">Додади Излез</button>
+    </div>
+
+    <div id="izvestajDiv" class="hidden card">
+      <h3>Моментална состојба</h3>
+      <div id="izvestajList"></div>
+    </div>
+
+    <div id="ocekivanoDiv" class="hidden card">
+  <h3>Очекувано (нарачано)</h3>
+  <label>Артикл:</label>
+  <select id="ocekSelect"></select><br>
+  <label>Количина:</label>
+  <input type="number" id="ocekKolicina"><br>
+  <button onclick="dodadiOcek()">Додади Очекувано</button>
+  <div id="ocekList"></div>
+</div>
+</div>
+</div>
+
+<script>
 const firebaseConfig = {
   apiKey: "AIzaSyAbCqqSwKQ62Q38K-DM15jsZQePloDD8XM",
   authDomain: "magacinapp-6a8f5.firebaseapp.com",
@@ -31,202 +85,124 @@ const firebaseConfig = {
   messagingSenderId: "160054879907",
   appId: "1:160054879907:web:ded639dcd0a9e0a64e4116"
 };
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-// 🔹 Лозинка
-const password = "1234";
-window.addEventListener("load", ()=>{
-  if(localStorage.getItem("magacin_pass")===password){ showDashboard(); } 
-  else { document.getElementById("login-card").style.display="block"; }
-});
+const PASSWORD = "1234";
 
-function checkLogin(){
-  const input = document.getElementById("pass").value;
-  if(input===password){ localStorage.setItem("magacin_pass",password); showDashboard(); } 
-  else { alert("Неточна лозинка!"); }
+function login(){
+  const p = document.getElementById('passInput').value;
+  if(p===PASSWORD){
+    document.getElementById('loginDiv').classList.add('hidden');
+    document.getElementById('appDiv').classList.remove('hidden');
+    loadArtikli();
+    loadIzlez();
+    loadOcek();
+    loadIzvestaj();
+  } else { alert('Неточна лозинка'); }
 }
-window.checkLogin=checkLogin;
+function logout(){ location.reload(); }
 
-function showDashboard(){ 
-  document.getElementById("login-card").style.display="none"; 
-  document.getElementById("dashboard").style.display="block"; 
-  hideTabs(); 
+function showTab(tab){
+  ['vnesDiv','izlezDiv','izvestajDiv','ocekivanoDiv'].forEach(d=>{
+    document.getElementById(d).classList.add('hidden');
+  });
+  document.getElementById(tab+'Div').classList.remove('hidden');
 }
-function hideTabs(){ document.querySelectorAll(".tab").forEach(t=>t.style.display="none"); }
 
-function showTab(id){
-  hideTabs();
-  const tab = document.getElementById(id);
-  if(tab){ 
-    tab.style.display="block";
-    if(id==="tabVnes"){ 
-      setTimeout(async ()=>{
-        await loadKategorii();
-        await loadArtikliDropdown();
-      }, 10); 
-    }
-  }
+let artikliData = [];
+
+async function loadArtikli(){
+  const snap = await db.collection('artikli').get();
+  artikliData = snap.docs.map(d=>({id:d.id, ...d.data()}));
+  const catSelect = document.getElementById('catSelect');
+  const artiklSelect = document.getElementById('artiklSelect');
+  catSelect.innerHTML='<option value="">Сите категории</option>';
+  artiklSelect.innerHTML='';
+  const cats = [...new Set(artikliData.map(a=>a.kategorija))];
+  cats.forEach(c=>{ catSelect.innerHTML+=`<option value='${c}'>${c}</option>`; });
+  artikliData.forEach(a=>{ artiklSelect.innerHTML+=`<option value='${a.id}'>${a.ime} (${a.merka})</option>` });
 }
-window.showTab=showTab;
 
-function logout(){ localStorage.removeItem("magacin_pass"); location.reload(); }
-window.logout=logout;
+function filterArtikli(){
+  const cat = document.getElementById('catSelect').value;
+  const sel = document.getElementById('artiklSelect');
+  sel.innerHTML='';
+  artikliData.filter(a=>!cat||a.kategorija===cat).forEach(a=>{ sel.innerHTML+=`<option value='${a.id}'>${a.ime} (${a.merka})</option>`; });
+}
+document.getElementById('catSelect').addEventListener('change', filterArtikli);
 
-// 🔹 Вчитување на категории од Firebase
-async function loadKategorii(){
-  const snap = await getDocs(collection(db,"artikli"));
-  const kategorii = new Set();
-  snap.docs.forEach(doc=>kategorii.add(doc.data().kategorija));
-  const select = document.getElementById("kategorijaSelect");
-  select.innerHTML = `<option value="">Сите категории</option>`;
-  kategorii.forEach(k=>{
-    const opt = document.createElement("option");
-    opt.value = k;
-    opt.text = k;
-    select.appendChild(opt);
+async function dodadiVnes(){
+  const aId = document.getElementById('artiklSelect').value;
+  const k = Number(document.getElementById('vnesKolicina').value);
+  if(!aId||!k){ alert('Пополни полиња'); return; }
+  const a = artikliData.find(x=>x.id===aId);
+  await db.collection('promet').add({
+    artiklId:a.id, ime:a.ime, merka:a.merka, kategorija:a.kategorija, kolicina:k, tip:'vnes', datum:new Date()
+  });
+  document.getElementById('vnesKolicina').value='';
+  document.getElementById('lastVnes').innerText=`Последен внес: ${a.ime} - ${k} ${a.merka}`;
+  loadIzvestaj();
+}
+
+async function loadIzlez(){
+  const sel = document.getElementById('izlezSelect');
+  sel.innerHTML='';
+  artikliData.forEach(a=>{ sel.innerHTML+=`<option value='${a.id}'>${a.ime} (${a.merka})</option>` });
+}
+async function dodadiIzlez(){
+  const aId = document.getElementById('izlezSelect').value;
+  const k = Number(document.getElementById('izlezKolicina').value);
+  if(!aId||!k){ alert('Пополни полиња'); return; }
+  const a = artikliData.find(x=>x.id===aId);
+  await db.collection('promet').add({
+    artiklId:a.id, ime:a.ime, merka:a.merka, kategorija:a.kategorija, kolicina:k, tip:'izlez', datum:new Date()
+  });
+  document.getElementById('izlezKolicina').value='';
+  loadIzvestaj();
+}
+
+async function loadIzvestaj(){
+  const snap = await db.collection('promet').get();
+  const records = snap.docs.map(d=>d.data());
+  const map = new Map();
+  records.forEach(r=>{
+    const key = r.artiklId;
+    const cur = map.get(key)||{ ime:r.ime, merka:r.merka, kategorija:r.kategorija, kolicina:0, minKolicina: (artikliData.find(a=>a.id===key)||{}).minKolicina||0};
+    cur.kolicina += (r.tip==='vnes'?r.kolicina:-r.kolicina);
+    map.set(key,cur);
+  });
+  const div = document.getElementById('izvestajList');
+  div.innerHTML='';
+  map.forEach(a=>{
+    let cls='green'; if(a.kolicina<a.minKolicina) cls='red';
+    div.innerHTML+=`<div class='card ${cls}'>${a.ime} (${a.merka}) - ${a.kolicina}</div>`;
   });
 }
 
-// 🔹 Вчитување на артикли од Firebase
-let artikliLista = [];
-async function loadArtikliDropdown(){
-  const select = document.getElementById("artiklSelect");
-  if(!select) return;
-
-  const snap = await getDocs(collection(db,"artikli"));
-  artikliLista = snap.docs.map(doc=>doc.data());
-
-  const kategorija = document.getElementById("kategorijaSelect").value;
-  select.innerHTML = "";
-  artikliLista.forEach(a=>{
-    if(!kategorija || a.kategorija === kategorija){
-      const option = document.createElement("option");
-      option.value = a.ime;
-      option.text = `${a.ime} (${a.merka})`;
-      option.dataset.merka = a.merka;
-      option.dataset.cena = a.cena;
-      option.dataset.min = a.minKolicina;
-      select.appendChild(option);
-    }
-  });
-}
-window.loadArtikliDropdown=loadArtikliDropdown;
-
-// 🔹 Внес на артикли
-async function dodadiMagacin(e){
-  e.preventDefault();
-  const select = document.getElementById("artiklSelect");
-  if(!select.value) return alert("Одбери артикл!");
-  const ime = select.value;
-  const merka = select.options[select.selectedIndex].dataset.merka;
-  const cena = parseFloat(select.options[select.selectedIndex].dataset.cena);
-  const minKolicina = parseFloat(select.options[select.selectedIndex].dataset.min);
-  const kolicina = parseFloat(document.getElementById("vnesKolicina").value);
-  if(!kolicina || kolicina <=0) return alert("Внеси количина!");
-  const datum = Timestamp.fromDate(new Date()); // ✅ Timestamp за Firestore
-  await addDoc(collection(db,"magacin"),{ime,merka,cena,kolicina,datum,minKolicina});
-  document.getElementById("vnesKolicina").value="";
-  prikaziArtikli("vnesLista","magacin",true);
-}
-window.dodadiMagacin=dodadiMagacin;
-
-// 🔹 Прикажи артикли
-async function prikaziArtikli(divID,kolekcija,onlyLast=false){
-  const div = document.getElementById(divID);
-  div.innerHTML="";
-  const snap = await getDocs(collection(db,kolekcija));
-  snap.forEach(docu=>{
-    const data = docu.data();
-    const klas = (data.kolicina < data.minKolicina) ? "red" : "";
-    if(onlyLast){
-      div.innerHTML=`<div class="${klas}"><b>${data.ime}</b> – ${data.kolicina} ${data.merka} ⚠️</div>`;
-    } else {
-      div.innerHTML+=`<div class="${klas}"><b>${data.ime}</b> – ${data.kolicina} ${data.merka} ⚠️</div>`;
-    }
+async function loadOcek(){
+  const sel = document.getElementById('ocekSelect');
+  sel.innerHTML='';
+  artikliData.forEach(a=>{ sel.innerHTML+=`<option value='${a.id}'>${a.ime} (${a.merka})</option>` });
+  const snap = await db.collection('ocekivano').get();
+  const div = document.getElementById('ocekList');
+  div.innerHTML='';
+  snap.docs.forEach(d=>{
+    const r = d.data();
+    div.innerHTML+=`<div class='card'>${r.ime} (${r.merka}) - ${r.kolicina}</div>`;
   });
 }
 
-// 🔹 Контрола по датум
-async function kontrolaVnes(startStr,endStr){
-  const div = document.getElementById("kontrolaLista");
-  div.innerHTML="";
-  const snap = await getDocs(collection(db,"magacin"));
-  const startDate = new Date(startStr);
-  const endDate = new Date(endStr); endDate.setHours(23,59,59);
-  snap.forEach(docu=>{
-    const data = docu.data();
-    const datum = data.datum.toDate ? data.datum.toDate() : new Date(data.datum);
-    if(datum>=startDate && datum<=endDate){
-      const klas = (data.kolicina < data.minKolicina) ? "red" : "";
-      div.innerHTML+=`<div class="${klas}"><b>${data.ime}</b> – ${data.kolicina} ${data.merka} ⚠️ ${datum.toLocaleString()}</div>`;
-    }
-  });
+async function dodadiOcek(){
+  const aId = document.getElementById('ocekSelect').value;
+  const k = Number(document.getElementById('ocekKolicina').value);
+  if(!aId||!k){ alert('Пополни полиња'); return; }
+  const a = artikliData.find(x=>x.id===aId);
+  await db.collection('ocekivano').add({artiklId:a.id, ime:a.ime, merka:a.merka, kategorija:a.kategorija, kolicina:k, datum:new Date()});
+  document.getElementById('ocekKolicina').value='';
+  loadOcek();
 }
-window.kontrolaVnes=kontrolaVnes;
-
 </script>
-</head>
-<body>
-
-<!-- Login -->
-<div id="login-card">
-<h2>🔒 Внеси лозинка</h2>
-<input type="password" id="pass" placeholder="Лозинка">
-<button onclick="checkLogin()">Влези</button>
-</div>
-
-<!-- Dashboard -->
-<div id="dashboard">
-<h2>📋 Главно мени</h2>
-<div class="menu">
-<button onclick="showTab('tabVnes')">Внес на артикли</button>
-<button onclick="showTab('tabIzlez')">Излез на артикли</button>
-<button onclick="showTab('tabIzvestaj')">Извештај (моментална состојба)</button>
-<button onclick="showTab('tabOcekuvano')">Очекувано / Нарачано</button>
-<button onclick="showTab('tabKontrola')">Контрола на внес</button>
-<button class="back-btn" onclick="logout()">Logout</button>
-</div>
-</div>
-
-<!-- TAB: Внес на артикли -->
-<div class="tab" id="tabVnes">
-<h2>➕ Внес на артикли</h2>
-<select id="kategorijaSelect" onchange="loadArtikliDropdown()">
-  <option value="">Сите категории</option>
-</select>
-<select id="artiklSelect"></select>
-<input type="number" id="vnesKolicina" placeholder="Количина">
-<button onclick="dodadiMagacin(event)">Додади</button>
-<div id="vnesLista"></div>
-</div>
-
-<!-- TAB: Излез на артикли -->
-<div class="tab" id="tabIzlez">
-<h2>➖ Излез на артикли</h2>
-<div id="izlezLista"></div>
-</div>
-
-<!-- TAB: Извештај -->
-<div class="tab" id="tabIzvestaj">
-<h2>📊 Извештај (моментална состојба)</h2>
-<div id="lista"></div>
-</div>
-
-<!-- TAB: Очекувано / Нарачано -->
-<div class="tab" id="tabOcekuvano">
-<h2>📦 Очекувано / Нарачано</h2>
-<div id="oczekDiv"></div>
-</div>
-
-<!-- TAB: Контрола -->
-<div class="tab" id="tabKontrola">
-<h2>🔍 Контрола на внес</h2>
-<input type="date" id="kontrolaStart">
-<input type="date" id="kontrolaEnd">
-<button onclick="kontrolaVnes(document.getElementById('kontrolaStart').value, document.getElementById('kontrolaEnd').value)">Филтрирај</button>
-<div id="kontrolaLista"></div>
-</div>
-
 </body>
 </html>
+
