@@ -387,10 +387,8 @@ function loadOcekCategories() {
   const ocekCatSelect = document.getElementById('ocekCatSelect');
   ocekCatSelect.innerHTML = '<option value="">Избери категорија</option>';
 
-  const categoriesSet = new Set();
-  artikliData.forEach(a => categoriesSet.add(a.kategorija));
-
-  categoriesSet.forEach(cat => {
+  const categories = [...new Set(artikliData.map(a => a.kategorija))];
+  categories.forEach(cat => {
     const option = document.createElement('option');
     option.value = cat;
     option.textContent = cat;
@@ -416,8 +414,8 @@ function loadOcekArtikli() {
   } else {
     filtered.forEach(a => {
       const option = document.createElement('option');
-      option.value = a.id;        // користиме id за уникатност
-      option.textContent = a.ime; // полето ime од artikliData
+      option.value = a.id;       // важи id за уникатност
+      option.textContent = a.ime;
       ocekSelect.appendChild(option);
     });
   }
@@ -436,7 +434,7 @@ function dodadiOcek() {
 
   const artiklObj = artikliData.find(a => a.id === artiklId);
 
-  firebase.firestore().collection('ocekuvano').add({
+  db.collection('ocekuvano').add({
     artiklId: artiklObj.id,
     artikl: artiklObj.ime,
     kolicina: kolicina,
@@ -448,23 +446,19 @@ function dodadiOcek() {
   .then(() => {
     document.getElementById('ocekKolicina').value = '';
     document.getElementById('ocekDatum').value = '';
-    loadOcek(); // освежи ја листата
-  })
-  .catch(err => console.error('Грешка при додавање:', err));
+    loadOcekList(); // освежи ја листата
+  });
 }
 
 // --- Прикажување на внесеното очекувано
-function loadOcek() {
+function loadOcekList() {
   const ocekList = document.getElementById('ocekList');
   ocekList.innerHTML = '';
 
-  firebase.firestore().collection('ocekuvano')
-    .orderBy('timestamp', 'desc')
-    .get()
+  db.collection('ocekuvano').orderBy('timestamp', 'desc').get()
     .then(snapshot => {
       snapshot.forEach(doc => {
         const data = doc.data();
-
         const div = document.createElement('div');
         div.classList.add('card');
         div.style.display = 'flex';
@@ -479,8 +473,7 @@ function loadOcek() {
         delBtn.textContent = 'Избриши';
         delBtn.onclick = () => {
           if (confirm('Дали си сигурен дека сакаш да го избришеш?')) {
-            firebase.firestore().collection('ocekuvano').doc(doc.id).delete()
-              .then(() => loadOcek());
+            db.collection('ocekuvano').doc(doc.id).delete().then(loadOcekList);
           }
         };
 
@@ -491,10 +484,18 @@ function loadOcek() {
     });
 }
 
-// --- Стартување на табот
-loadOcekCategories();
-loadOcek();
+// --- Иницијализација на таб „Очекувано“
+function initOcek() {
+  loadOcekCategories();
+  loadOcekArtikli();
+  loadOcekList();
+}
 
+// --- Event listener за избор на категорија
+document.getElementById('ocekCatSelect').addEventListener('change', loadOcekArtikli);
+
+// ПОВИКАЈ ВО loadArtikli() по завршување на Firebase load
+// initOcek();
 
   function showTab(tab) {
   const tabs = ['vnesDiv','izlezDiv','izvestajDiv','ocekivanoDiv'];
