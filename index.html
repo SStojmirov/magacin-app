@@ -389,6 +389,8 @@ function loadOcekCategories() {
   const ocekCatSelect = document.getElementById('ocekCatSelect');
   ocekCatSelect.innerHTML = '<option value="">Избери категорија</option>';
 
+  if(!artikliData || !artikliData.length) return;
+
   const categoriesSet = new Set();
   artikliData.forEach(a => categoriesSet.add(a.kategorija));
 
@@ -406,6 +408,7 @@ function loadOcekArtikli() {
   const selectedCat = document.getElementById('ocekCatSelect').value;
 
   ocekSelect.innerHTML = '';
+
   if(!selectedCat) return;
 
   const filteredArtikli = artikliData.filter(a => a.kategorija === selectedCat);
@@ -417,7 +420,7 @@ function loadOcekArtikli() {
   });
 }
 
-// --- Додавање во Firebase ---
+// --- Додавање очекувано во Firebase ---
 function dodadiOcek() {
   const artikl = document.getElementById('ocekSelect').value;
   const kolicina = Number(document.getElementById('ocekKolicina').value);
@@ -441,7 +444,7 @@ function dodadiOcek() {
   });
 }
 
-// --- Прикажување на внесеното очекувано со бришење ---
+// --- Прикажување на внесеното очекувано ---
 function loadOcek() {
   const ocekList = document.getElementById('ocekList');
   ocekList.innerHTML = '';
@@ -481,6 +484,7 @@ function loadOcek() {
 // --- Повикај при load ---
 loadOcekCategories();
 loadOcek();
+
 
   function showTab(tab) {
   const tabs = ['vnesDiv','izlezDiv','izvestajDiv','ocekivanoDiv'];
