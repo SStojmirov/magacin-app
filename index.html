@@ -291,6 +291,18 @@ document.getElementById('izvestajCatSelect').addEventListener('change', ()=>{
   loadIzvestaj();
 });
 
+async function loadOcek(){
+  const sel = document.getElementById('ocekSelect');
+  sel.innerHTML='';
+  artikliData.forEach(a=>{ sel.innerHTML+=`<option value='${a.id}'>${a.ime} (${a.merka})</option>` });
+  const snap = await db.collection('ocekivano').get();
+  const div = document.getElementById('ocekList');
+  div.innerHTML='';
+  snap.docs.forEach(d=>{
+    const r = d.data();
+    div.innerHTML+=`<div class='card'>${r.ime} (${r.merka}) - ${r.kolicina}</div>`;
+  });
+}
 
 async function dodadiOcek(){
   const aId = document.getElementById('ocekSelect').value;
@@ -303,5 +315,3 @@ async function dodadiOcek(){
 }
 </script>
 </body>
-</html>
-
