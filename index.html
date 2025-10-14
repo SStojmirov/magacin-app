@@ -52,6 +52,8 @@
 
     <div id="izlezDiv" class="hidden card">
       <h3>Излез од магацин</h3>
+      <label>Категорија:</label>
+      <select id="izlezCatSelect"></select><br>
       <label>Артикл:</label>
       <select id="izlezSelect"></select><br>
       <label>Количина:</label>
@@ -146,10 +148,12 @@ async function dodadiVnes(){
 }
 
 async function loadIzlez(){
+  const catSelect = document.getElementById('izlezCatSelect');
   const sel = document.getElementById('izlezSelect');
   sel.innerHTML='';
+  catSelect.innerHTML='<option value="">Сите категории</option>';
 
-  // Прво пресметај моментална количина за секој артикл
+  // Пресметка на моментална количина
   const snap = await db.collection('promet').get();
   const records = snap.docs.map(d=>d.data());
   const map = new Map();
@@ -160,14 +164,43 @@ async function loadIzlez(){
     map.set(key, cur);
   });
 
-  // Сега додај во dropdown само артиклите со количина > 0
+  // Додај категории
+  const cats = [...new Set(artikliData.map(a=>a.kategorija))];
+  cats.forEach(c => { catSelect.innerHTML += `<option value="${c}">${c}</option>`; });
+
+  // Додај артикли со количина > 0
   artikliData.forEach(a=>{
     const kolicina = map.get(a.id)?.kolicina || 0;
     if(kolicina > 0){
-      sel.innerHTML += `<option value='${a.id}'>${a.ime} (${kolicina} ${a.merka})</option>`;
+      sel.innerHTML += `<option value="${a.id}">${a.ime} (${kolicina} ${a.merka})</option>`;
     }
   });
 }
+
+// Филтрирање по категорија
+document.getElementById('izlezCatSelect').addEventListener('change', ()=>{
+  const cat = document.getElementById('izlezCatSelect').value;
+  const sel = document.getElementById('izlezSelect');
+  sel.innerHTML='';
+  
+  // Пресметка на количина
+  const snap = await db.collection('promet').get();
+  const records = snap.docs.map(d=>d.data());
+  const map = new Map();
+  records.forEach(r=>{
+    const key = r.artiklId;
+    const cur = map.get(key) || { kolicina:0 };
+    cur.kolicina += (r.tip==='vnes' ? r.kolicina : -r.kolicina);
+    map.set(key, cur);
+  });
+
+  artikliData.forEach(a=>{
+    const kolicina = map.get(a.id)?.kolicina || 0;
+    if(kolicina > 0 && (!cat || a.kategorija===cat)){
+      sel.innerHTML += `<option value="${a.id}">${a.ime} (${kolicina} ${a.merka})</option>`;
+    }
+  });
+});
 
 // Проверка при внес на излез
 async function dodadiIzlez(){
