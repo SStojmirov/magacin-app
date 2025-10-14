@@ -135,18 +135,22 @@
   <h3>Очекувано (нарачано)</h3>
 
   <label>Категорија:</label>
-<select id="ocekCatSelect" onchange="loadOcekArtikli()"></select><br>
+  <select id="ocekCatSelect" onchange="loadOcekArtikli()"></select><br>
 
-<label>Артикл:</label>
-<select id="ocekSelect"></select><br>
+  <label>Артикл:</label>
+  <select id="ocekSelect"></select><br>
 
   <label>Количина:</label>
-  <input type="number" id="ocekKolicina" inputmode="numeric" pattern="[0-9]*"><br>
+  <input type="number" id="ocekKolicina" inputmode="numeric" pattern="[0-9]*" placeholder="Внеси количина"><br>
+
+  <label>Очекуван датум:</label>
+  <input type="date" id="ocekDatum"><br>
 
   <button onclick="dodadiOcek()">Додади Очекувано</button>
 
-  <div id="ocekList"></div>
+  <div id="ocekList" style="margin-top:10px;"></div>
 </div>
+
 </div>
 </div>
 
@@ -380,7 +384,8 @@ function initIzvestaj(){
 // Стартување
 loadArtikliFirebase();
 
-  function loadOcekCategories() {
+  // --- Пополнување категории ---
+function loadOcekCategories() {
   const ocekCatSelect = document.getElementById('ocekCatSelect');
   ocekCatSelect.innerHTML = '<option value="">Избери категорија</option>';
 
@@ -399,34 +404,53 @@ loadArtikliFirebase();
     });
 }
 
-// Повикај го при load на апликацијата
-loadOcekCategories();
-
-  function loadOcekArtikli() {
+// --- Пополнување артикли за избрана категорија ---
+function loadOcekArtikli() {
   const ocekSelect = document.getElementById('ocekSelect');
   const selectedCat = document.getElementById('ocekCatSelect').value;
 
-  ocekSelect.innerHTML = ''; // празни пред пополнување
+  ocekSelect.innerHTML = '';
 
-  if(!selectedCat) return; // ако нема избрана категорија, нема да пополнува
+  if(!selectedCat) return;
 
   firebase.firestore().collection('artikli')
     .where('kategorija', '==', selectedCat)
     .get()
     .then(snapshot => {
       snapshot.forEach(doc => {
-        const data = doc.data();
         const option = document.createElement('option');
-        option.value = data.naziv; // Името на артиклот
-        option.textContent = data.naziv;
+        option.value = doc.data().naziv;
+        option.textContent = doc.data().naziv;
         ocekSelect.appendChild(option);
       });
-    })
-    .catch(err => console.error('Грешка при вчитување артикли:', err));
+    });
 }
 
+// --- Додавање во Firebase ---
+function dodadiOcek() {
+  const artikl = document.getElementById('ocekSelect').value;
+  const kolicina = Number(document.getElementById('ocekKolicina').value);
+  const datum = document.getElementById('ocekDatum').value;
 
+  if(!artikl || !kolicina || !datum) {
+    alert('Внеси артикл, количина и датум!');
+    return;
+  }
 
+  firebase.firestore().collection('ocekuvano').add({
+    artikl: artikl,
+    kolicina: kolicina,
+    datum: datum,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  })
+  .then(() => {
+    document.getElementById('ocekKolicina').value = '';
+    document.getElementById('ocekDatum').value = '';
+    loadOcek();
+  });
+}
+
+// --- Прикажување на внесеното очекувано со копче за бришење ---
 function loadOcek() {
   const ocekList = document.getElementById('ocekList');
   ocekList.innerHTML = '';
@@ -439,14 +463,16 @@ function loadOcek() {
         const data = doc.data();
         const div = document.createElement('div');
         div.classList.add('card');
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        div.style.alignItems = 'center';
+        div.style.marginBottom = '4px';
 
-        // Прикажи артикл + количина + корисник
-        div.textContent = `${data.artikl} - ${data.kolicina} (нарачано од ${data.user})`;
+        const text = document.createElement('span');
+        text.textContent = `${data.artikl} - ${data.kolicina} | Очекуван датум: ${data.datum}`;
 
-        // Копче за бришење
         const delBtn = document.createElement('button');
         delBtn.textContent = 'Избриши';
-        delBtn.style.marginLeft = '10px';
         delBtn.onclick = () => {
           if(confirm('Дали си сигурен дека сакаш да го избришеш?')) {
             firebase.firestore().collection('ocekuvano').doc(doc.id).delete()
@@ -454,32 +480,16 @@ function loadOcek() {
           }
         };
 
+        div.appendChild(text);
         div.appendChild(delBtn);
         ocekList.appendChild(div);
       });
     });
 }
 
-
-function dodadiOcek() {
-  const artikl = document.getElementById('ocekSelect').value;
-  const kolicina = Number(document.getElementById('ocekKolicina').value);
-
-  if(!artikl || !kolicina) {
-    alert('Внеси артикл и количина!');
-    return;
-  }
-
-  firebase.firestore().collection('ocekuvano').add({
-    artikl: artikl,
-    kolicina: kolicina,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  })
-  .then(() => {
-    document.getElementById('ocekKolicina').value = '';
-    loadOcek(); // обнови список
-  });
-}
+// --- Повикај при load на апликацијата ---
+loadOcekCategories();
+loadOcek();
 
   function showTab(tab) {
   const tabs = ['vnesDiv','izlezDiv','izvestajDiv','ocekivanoDiv'];
