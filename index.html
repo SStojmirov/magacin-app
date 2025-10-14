@@ -382,9 +382,7 @@ function initIzvestaj(){
   loadIzvestaj();
 }
 
-// Не декларирај повторно artikliData, користи ја глобалната што веќе постои
-
-// --- Пополнување категории во dropdown
+// --- Пополнување категории во табот "Очекувано"
 function loadOcekCategories() {
   const ocekCatSelect = document.getElementById('ocekCatSelect');
   ocekCatSelect.innerHTML = '<option value="">Избери категорија</option>';
@@ -418,8 +416,8 @@ function loadOcekArtikli() {
   } else {
     filtered.forEach(a => {
       const option = document.createElement('option');
-      option.value = a.naziv;
-      option.textContent = a.naziv;
+      option.value = a.id;        // користиме id за уникатност
+      option.textContent = a.ime; // полето ime од artikliData
       ocekSelect.appendChild(option);
     });
   }
@@ -427,19 +425,24 @@ function loadOcekArtikli() {
 
 // --- Додавање очекувано во Firebase
 function dodadiOcek() {
-  const artikl = document.getElementById('ocekSelect').value;
+  const artiklId = document.getElementById('ocekSelect').value;
   const kolicina = Number(document.getElementById('ocekKolicina').value);
   const datum = document.getElementById('ocekDatum').value;
 
-  if (!artikl || !kolicina || !datum) {
+  if (!artiklId || !kolicina || !datum) {
     alert('Внеси артикл, количина и датум!');
     return;
   }
 
+  const artiklObj = artikliData.find(a => a.id === artiklId);
+
   firebase.firestore().collection('ocekuvano').add({
-    artikl: artikl,
+    artiklId: artiklObj.id,
+    artikl: artiklObj.ime,
     kolicina: kolicina,
     datum: datum,
+    kategorija: artiklObj.kategorija,
+    merka: artiklObj.merka,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   })
   .then(() => {
@@ -470,7 +473,7 @@ function loadOcek() {
         div.style.marginBottom = '4px';
 
         const text = document.createElement('span');
-        text.textContent = `${data.artikl} - ${data.kolicina} | Очекуван датум: ${data.datum}`;
+        text.textContent = `${data.artikl} (${data.kolicina} ${data.merka}) | Очекуван датум: ${data.datum}`;
 
         const delBtn = document.createElement('button');
         delBtn.textContent = 'Избриши';
@@ -488,7 +491,7 @@ function loadOcek() {
     });
 }
 
-// --- При старт на апликацијата
+// --- Стартување на табот
 loadOcekCategories();
 loadOcek();
 
