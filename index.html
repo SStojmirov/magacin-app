@@ -169,18 +169,17 @@ const db = firebase.firestore();
 
 const PASSWORD = "1234";
 
-function login(){
+async function login() {
   const p = document.getElementById('passInput').value;
-  if(p===PASSWORD){
+  if(p === PASSWORD){
     document.getElementById('loginDiv').classList.add('hidden');
     document.getElementById('appDiv').classList.remove('hidden');
-    loadArtikli();
+    await loadArtikli();   // почекај да се вчитаат артиклите
     loadIzlez();
-    initOcek(); // << наместо loadOcek()
     loadIzvestaj();
-  } else { 
-    alert('Неточна лозинка'); 
-  }
+    loadOcekCategories();  // сега категориите се вчитани
+    loadOcek();            // и артиклите можат да се прикажат
+  } else { alert('Неточна лозинка'); }
 }
 function logout(){ location.reload(); }
 
@@ -408,19 +407,12 @@ function loadOcekArtikli() {
 
   const filtered = artikliData.filter(a => a.kategorija === selectedCat);
 
-  if (filtered.length === 0) {
+  filtered.forEach(a => {
     const option = document.createElement('option');
-    option.value = '';
-    option.textContent = 'Нема артикли за оваа категорија';
+    option.value = a.ime;    // или a.id ако треба да го чуваме
+    option.textContent = a.ime;
     ocekSelect.appendChild(option);
-  } else {
-    filtered.forEach(a => {
-      const option = document.createElement('option');
-      option.value = a.id;       // важи id за уникатност
-      option.textContent = a.ime;
-      ocekSelect.appendChild(option);
-    });
-  }
+  });
 }
 
 // --- Додавање очекувано во Firebase
