@@ -470,7 +470,6 @@ function dodadiOcek() {
   firebase.firestore().collection('ocekuvano').add({
     artikl: artikl,
     kolicina: kolicina,
-    user: currentUser,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   })
   .then(() => {
