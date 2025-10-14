@@ -133,11 +133,15 @@
 
     <div id="ocekivanoDiv" class="hidden card">
   <h3>Очекувано (нарачано)</h3>
+  
   <label>Артикл:</label>
   <select id="ocekSelect"></select><br>
+
   <label>Количина:</label>
-  <input type="number" id="ocekKolicina"><br>
+  <input type="number" id="ocekKolicina" inputmode="numeric" pattern="[0-9]*"><br>
+
   <button onclick="dodadiOcek()">Додади Очекувано</button>
+
   <div id="ocekList"></div>
 </div>
 </div>
@@ -373,27 +377,59 @@ function initIzvestaj(){
 // Стартување
 loadArtikliFirebase();
 
-async function loadOcek(){
-  const sel = document.getElementById('ocekSelect');
-  sel.innerHTML='';
-  artikliData.forEach(a=>{ sel.innerHTML+=`<option value='${a.id}'>${a.ime} (${a.merka})</option>` });
-  const snap = await db.collection('ocekivano').get();
-  const div = document.getElementById('ocekList');
-  div.innerHTML='';
-  snap.docs.forEach(d=>{
-    const r = d.data();
-    div.innerHTML+=`<div class='card'>${r.ime} (${r.merka}) - ${r.kolicina}</div>`;
-  });
+function loadOcek() {
+  const ocekList = document.getElementById('ocekList');
+  ocekList.innerHTML = '';
+
+  firebase.firestore().collection('ocekuvano')
+    .orderBy('timestamp', 'desc')
+    .get()
+    .then(snapshot => {
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const div = document.createElement('div');
+        div.classList.add('card');
+
+        // Прикажи артикл + количина + корисник
+        div.textContent = `${data.artikl} - ${data.kolicina} (нарачано од ${data.user})`;
+
+        // Копче за бришење
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Избриши';
+        delBtn.style.marginLeft = '10px';
+        delBtn.onclick = () => {
+          if(confirm('Дали си сигурен дека сакаш да го избришеш?')) {
+            firebase.firestore().collection('ocekuvano').doc(doc.id).delete()
+              .then(() => loadOcek());
+          }
+        };
+
+        div.appendChild(delBtn);
+        ocekList.appendChild(div);
+      });
+    });
 }
 
-async function dodadiOcek(){
-  const aId = document.getElementById('ocekSelect').value;
-  const k = Number(document.getElementById('ocekKolicina').value);
-  if(!aId||!k){ alert('Пополни полиња'); return; }
-  const a = artikliData.find(x=>x.id===aId);
-  await db.collection('ocekivano').add({artiklId:a.id, ime:a.ime, merka:a.merka, kategorija:a.kategorija, kolicina:k, datum:new Date()});
-  document.getElementById('ocekKolicina').value='';
-  loadOcek();
+
+function dodadiOcek() {
+  const artikl = document.getElementById('ocekSelect').value;
+  const kolicina = Number(document.getElementById('ocekKolicina').value);
+
+  if(!artikl || !kolicina) {
+    alert('Внеси артикл и количина!');
+    return;
+  }
+
+  firebase.firestore().collection('ocekuvano').add({
+    artikl: artikl,
+    kolicina: kolicina,
+    user: currentUser,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  })
+  .then(() => {
+    document.getElementById('ocekKolicina').value = '';
+    loadOcek(); // обнови список
+  });
 }
 
   function showTab(tab) {
