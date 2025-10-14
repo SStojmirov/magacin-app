@@ -174,13 +174,13 @@ async function login() {
   if(p === PASSWORD){
     document.getElementById('loginDiv').classList.add('hidden');
     document.getElementById('appDiv').classList.remove('hidden');
-    await loadArtikli();   // почекај да се вчитаат артиклите
+    await loadArtikli();
     loadIzlez();
-    loadIzvestaj();
-    loadOcekCategories();  // сега категориите се вчитани
-    loadOcek();            // и артиклите можат да се прикажат
+    initIzvestaj();
+    initOcek(); // иницијализирај очекувано
   } else { alert('Неточна лозинка'); }
 }
+
 function logout(){ location.reload(); }
 
 function showTab(tab){
@@ -195,10 +195,12 @@ let artikliData = [];
 async function loadArtikli(){
   const snap = await db.collection('artikli').get();
   artikliData = snap.docs.map(d=>({id:d.id, ...d.data()}));
+  
   const catSelect = document.getElementById('catSelect');
   const artiklSelect = document.getElementById('artiklSelect');
   catSelect.innerHTML='<option value="">Сите категории</option>';
   artiklSelect.innerHTML='';
+
   const cats = [...new Set(artikliData.map(a=>a.kategorija))];
   cats.forEach(c=>{ catSelect.innerHTML+=`<option value='${c}'>${c}</option>`; });
   artikliData.forEach(a=>{ artiklSelect.innerHTML+=`<option value='${a.id}'>${a.ime} (${a.merka})</option>` });
@@ -225,14 +227,13 @@ async function dodadiVnes(){
   loadIzvestaj();
 }
 
-// Вчитување на артикли во табот „Излез“
+// Излез
 async function loadIzlez(){
   const catSelect = document.getElementById('izlezCatSelect');
   const sel = document.getElementById('izlezSelect');
   sel.innerHTML='';
   catSelect.innerHTML='<option value="">Сите категории</option>';
 
-  // Пресметка на моментална количина
   const snap = await db.collection('promet').get();
   const records = snap.docs.map(d=>d.data());
   const map = new Map();
@@ -243,11 +244,9 @@ async function loadIzlez(){
     map.set(key, cur);
   });
 
-  // Додавање на категории
   const cats = [...new Set(artikliData.map(a=>a.kategorija))];
   cats.forEach(c => { catSelect.innerHTML += `<option value="${c}">${c}</option>`; });
 
-  // Додавање на артикли со количина > 0
   artikliData.forEach(a=>{
     const kolicina = map.get(a.id)?.kolicina || 0;
     if(kolicina > 0){
@@ -256,38 +255,13 @@ async function loadIzlez(){
   });
 }
 
-// Филтрирање по категорија
-document.getElementById('izlezCatSelect').addEventListener('change', async ()=>{
-  const cat = document.getElementById('izlezCatSelect').value;
-  const sel = document.getElementById('izlezSelect');
-  sel.innerHTML='';
+document.getElementById('izlezCatSelect').addEventListener('change', loadIzlez);
 
-  // Пресметка на количина
-  const snap = await db.collection('promet').get();
-  const records = snap.docs.map(d=>d.data());
-  const map = new Map();
-  records.forEach(r=>{
-    const key = r.artiklId;
-    const cur = map.get(key) || { kolicina:0 };
-    cur.kolicina += (r.tip==='vnes' ? r.kolicina : -r.kolicina);
-    map.set(key, cur);
-  });
-
-  artikliData.forEach(a=>{
-    const kolicina = map.get(a.id)?.kolicina || 0;
-    if(kolicina > 0 && (!cat || a.kategorija===cat)){
-      sel.innerHTML += `<option value="${a.id}">${a.ime} (${kolicina} ${a.merka})</option>`;
-    }
-  });
-});
-
-// Внес на излез со проверка за достапна количина
 async function dodadiIzlez(){
   const aId = document.getElementById('izlezSelect').value;
   const k = Number(document.getElementById('izlezKolicina').value);
   if(!aId||!k){ alert('Пополни полиња'); return; }
 
-  // Пресметка на моментална количина
   const snap = await db.collection('promet').get();
   const records = snap.docs.map(d=>d.data());
   const map = new Map();
@@ -311,84 +285,61 @@ async function dodadiIzlez(){
 
   document.getElementById('izlezKolicina').value='';
   loadIzvestaj();
-  loadIzlez(); // обнови dropdown
+  loadIzlez();
 }
 
-
-
-
-// Вчитување на артикли од Firebase
-async function loadArtikliFirebase() {
-  const snap = await db.collection('artikli').get();
-  artikliData = snap.docs.map(d => d.data());
-  initIzvestaj(); // стартување на извештајот после што е наполнета
-}
-
-// Пополнување на dropdown со категории
-function loadIzvestajCategories(){
+// Извештај
+function initIzvestaj(){
   const catSelect = document.getElementById('izvestajCatSelect');
-  catSelect.innerHTML = '<option value="">Сите категории</option>'; // најгоре
+  catSelect.innerHTML = '<option value="">Сите категории</option>';
   const cats = [...new Set(artikliData.map(a=>a.kategorija))];
-  cats.forEach(c => { 
-    catSelect.innerHTML += `<option value="${c}">${c}</option>`; 
-  });
-}
+  cats.forEach(c => { catSelect.innerHTML += `<option value="${c}">${c}</option>`; });
 
-// Прикажување на извештај
+  loadIzvestaj();
+}
 async function loadIzvestaj(){
   const selectedCat = document.getElementById('izvestajCatSelect').value;
   const snap = await db.collection('promet').get();
   const records = snap.docs.map(d=>d.data());
-
   const map = new Map();
   records.forEach(r=>{
     const key = r.artiklId;
     const cur = map.get(key) || { 
-      ime: r.ime, 
-      merka: r.merka, 
-      kategorija: r.kategorija, 
-      kolicina: 0, 
-      minKolicina: (artikliData.find(a=>a.id===key)||{}).minKolicina || 0 
+      ime: r.ime, merka: r.merka, kategorija: r.kategorija, kolicina:0,
+      minKolicina: (artikliData.find(a=>a.id===key)||{}).minKolicina||0
     };
-    cur.kolicina += (r.tip==='vnes' ? r.kolicina : -r.kolicina);
+    cur.kolicina += (r.tip==='vnes'?r.kolicina:-r.kolicina);
     map.set(key, cur);
   });
-
   let list = Array.from(map.values());
-  if(selectedCat) list = list.filter(a => a.kategorija === selectedCat);
+  if(selectedCat) list = list.filter(a=>a.kategorija===selectedCat);
 
-  // Артикли под минимум на почеток
   list.sort((a,b)=>{
-    const aLow = a.kolicina <= a.minKolicina ? 0 : 1;
-    const bLow = b.kolicina <= b.minKolicina ? 0 : 1;
-    return aLow - bLow;
+    const aLow = a.kolicina <= a.minKolicina ? 0:1;
+    const bLow = b.kolicina <= b.minKolicina ? 0:1;
+    return aLow-bLow;
   });
 
   const div = document.getElementById('izvestajList');
   div.innerHTML='';
   list.forEach(a=>{
-    const cls = a.kolicina <= a.minKolicina ? 'red' : 'green';
+    const cls = a.kolicina <= a.minKolicina ? 'red':'green';
     div.innerHTML += `<div class='card ${cls}'>${a.ime} (${a.merka}) - ${a.kolicina}</div>`;
   });
 }
+document.getElementById('izvestajCatSelect').addEventListener('change', loadIzvestaj);
 
-// Event listener за категорија
-document.getElementById('izvestajCatSelect').addEventListener('change', ()=>{
-  loadIzvestaj();
-});
-
-// Иницијализација
-function initIzvestaj(){
-  loadIzvestajCategories();
-  loadIzvestaj();
+// Очекувано
+function initOcek(){
+  loadOcekCategories();
+  loadOcekArtikli();
+  loadOcekList();
 }
 
-// --- Пополнување категории во табот "Очекувано"
 function loadOcekCategories() {
   const ocekCatSelect = document.getElementById('ocekCatSelect');
   ocekCatSelect.innerHTML = '<option value="">Избери категорија</option>';
-
-  const categories = [...new Set(artikliData.map(a => a.kategorija))];
+  const categories = [...new Set(artikliData.map(a=>a.kategorija))];
   categories.forEach(cat => {
     const option = document.createElement('option');
     option.value = cat;
@@ -397,112 +348,76 @@ function loadOcekCategories() {
   });
 }
 
-// --- Пополнување артикли за избрана категорија
 function loadOcekArtikli() {
   const ocekSelect = document.getElementById('ocekSelect');
   const selectedCat = document.getElementById('ocekCatSelect').value;
   ocekSelect.innerHTML = '';
-
-  if (!selectedCat) return;
-
-  const filtered = artikliData.filter(a => a.kategorija === selectedCat);
-
-  filtered.forEach(a => {
+  if(!selectedCat) return;
+  const filtered = artikliData.filter(a=>a.kategorija===selectedCat);
+  filtered.forEach(a=>{
     const option = document.createElement('option');
-    option.value = a.ime;    // или a.id ако треба да го чуваме
+    option.value = a.id;
     option.textContent = a.ime;
     ocekSelect.appendChild(option);
   });
 }
 
-// --- Додавање очекувано во Firebase
-function dodadiOcek() {
+function dodadiOcek(){
   const artiklId = document.getElementById('ocekSelect').value;
   const kolicina = Number(document.getElementById('ocekKolicina').value);
   const datum = document.getElementById('ocekDatum').value;
-
-  if (!artiklId || !kolicina || !datum) {
-    alert('Внеси артикл, количина и датум!');
-    return;
-  }
-
-  const artiklObj = artikliData.find(a => a.id === artiklId);
-
+  if(!artiklId||!kolicina||!datum){ alert('Внеси артикл, количина и датум!'); return; }
+  const artiklObj = artikliData.find(a=>a.id===artiklId);
   db.collection('ocekuvano').add({
-    artiklId: artiklObj.id,
-    artikl: artiklObj.ime,
-    kolicina: kolicina,
-    datum: datum,
-    kategorija: artiklObj.kategorija,
-    merka: artiklObj.merka,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  })
-  .then(() => {
-    document.getElementById('ocekKolicina').value = '';
-    document.getElementById('ocekDatum').value = '';
-    loadOcekList(); // освежи ја листата
+    artiklId:artiklObj.id,
+    artikl:artiklObj.ime,
+    kolicina:kolicina,
+    datum:datum,
+    kategorija:artiklObj.kategorija,
+    merka:artiklObj.merka,
+    timestamp:firebase.firestore.FieldValue.serverTimestamp()
+  }).then(()=>{
+    document.getElementById('ocekKolicina').value='';
+    document.getElementById('ocekDatum').value='';
+    loadOcekList();
   });
 }
 
-// --- Прикажување на внесеното очекувано
-function loadOcekList() {
+function loadOcekList(){
   const ocekList = document.getElementById('ocekList');
-  ocekList.innerHTML = '';
+  ocekList.innerHTML='';
+  db.collection('ocekuvano').orderBy('timestamp','desc').get().then(snapshot=>{
+    snapshot.forEach(doc=>{
+      const data = doc.data();
+      const div = document.createElement('div');
+      div.classList.add('card');
+      div.style.display='flex';
+      div.style.justifyContent='space-between';
+      div.style.alignItems='center';
+      div.style.marginBottom='4px';
 
-  db.collection('ocekuvano').orderBy('timestamp', 'desc').get()
-    .then(snapshot => {
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const div = document.createElement('div');
-        div.classList.add('card');
-        div.style.display = 'flex';
-        div.style.justifyContent = 'space-between';
-        div.style.alignItems = 'center';
-        div.style.marginBottom = '4px';
+      const text = document.createElement('span');
+      text.textContent = `${data.artikl} (${data.kolicina} ${data.merka}) | Очекуван датум: ${data.datum}`;
 
-        const text = document.createElement('span');
-        text.textContent = `${data.artikl} (${data.kolicina} ${data.merka}) | Очекуван датум: ${data.datum}`;
+      const delBtn = document.createElement('button');
+      delBtn.textContent='Избриши';
+      delBtn.onclick = ()=>{ if(confirm('Дали си сигурен?')) db.collection('ocekuvano').doc(doc.id).delete().then(loadOcekList); }
 
-        const delBtn = document.createElement('button');
-        delBtn.textContent = 'Избриши';
-        delBtn.onclick = () => {
-          if (confirm('Дали си сигурен дека сакаш да го избришеш?')) {
-            db.collection('ocekuvano').doc(doc.id).delete().then(loadOcekList);
-          }
-        };
-
-        div.appendChild(text);
-        div.appendChild(delBtn);
-        ocekList.appendChild(div);
-      });
+      div.appendChild(text);
+      div.appendChild(delBtn);
+      ocekList.appendChild(div);
     });
+  });
 }
 
-// --- Иницијализација на таб „Очекувано“
-function initOcek() {
-  loadOcekCategories();
-  loadOcekArtikli();
-  loadOcekList();
-}
-
-// --- Event listener за избор на категорија
+// Event listener за таб „Очекувано“
 document.getElementById('ocekCatSelect').addEventListener('change', loadOcekArtikli);
-
-// ПОВИКАЈ ВО loadArtikli() по завршување на Firebase load
-// initOcek();
-
-  function showTab(tab) {
-  const tabs = ['vnesDiv','izlezDiv','izvestajDiv','ocekivanoDiv'];
-  tabs.forEach(t => document.getElementById(t).classList.add('hidden'));
-  
-  // Прикажи само избраниот
-  document.getElementById(tab + 'Div').classList.remove('hidden');
-}
 
 // На мобилен при стартување покажи првиот таб (Внес)
 if(window.innerWidth <= 600){
   showTab('vnes');
 }
+
 
 </script>
 </body>
