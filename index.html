@@ -133,7 +133,10 @@
 
     <div id="ocekivanoDiv" class="hidden card">
   <h3>Очекувано (нарачано)</h3>
-  
+
+  <label>Категорија:</label>
+  <select id="ocekCatSelect" onchange="loadOcekArtikli()"></select><br>
+
   <label>Артикл:</label>
   <select id="ocekSelect"></select><br>
 
@@ -376,6 +379,50 @@ function initIzvestaj(){
 
 // Стартување
 loadArtikliFirebase();
+
+  function loadOcekCategories() {
+  const ocekCatSelect = document.getElementById('ocekCatSelect');
+  ocekCatSelect.innerHTML = '<option value="">Избери категорија</option>';
+
+  firebase.firestore().collection('artikli')
+    .get()
+    .then(snapshot => {
+      const categories = new Set();
+      snapshot.forEach(doc => categories.add(doc.data().kategorija));
+
+      categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        ocekCatSelect.appendChild(option);
+      });
+    });
+}
+
+// Повикај го при load на апликацијата
+loadOcekCategories();
+
+  function loadOcekArtikli() {
+  const ocekSelect = document.getElementById('ocekSelect');
+  const selectedCat = document.getElementById('ocekCatSelect').value;
+
+  ocekSelect.innerHTML = '';
+
+  if(!selectedCat) return;
+
+  firebase.firestore().collection('artikli')
+    .where('kategorija', '==', selectedCat)
+    .get()
+    .then(snapshot => {
+      snapshot.forEach(doc => {
+        const option = document.createElement('option');
+        option.value = doc.data().naziv; // име на артикл
+        option.textContent = doc.data().naziv;
+        ocekSelect.appendChild(option);
+      });
+    });
+}
+
 
 function loadOcek() {
   const ocekList = document.getElementById('ocekList');
