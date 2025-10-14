@@ -253,12 +253,14 @@ async function dodadiIzlez(){
 }
 
 
-// Пополнување dropdown со категории
 function loadIzvestajCategories(){
   const catSelect = document.getElementById('izvestajCatSelect');
   catSelect.innerHTML = '<option value="">Сите категории</option>'; // најгоре
 
-  const cats = [...new Set(artikliData.map(a=>a.kategorija))];
+  // Проверуваме дали artikliData е дефинирано
+  if(!artikliData || !artikliData.length) return;
+
+  const cats = [...new Set(artikliData.map(a=>a.kategorija))]; // уникатни категории
   cats.forEach(c => { 
     catSelect.innerHTML += `<option value="${c}">${c}</option>`; 
   });
