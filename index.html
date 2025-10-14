@@ -7,25 +7,162 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
-    body { background-color: #1f2937; color: #f3f4f6; font-family: Arial, sans-serif; margin:0; padding:0; }
-    .container { max-width: 800px; margin: 20px auto; padding: 20px; }
-    .hidden { display: none; }
-    button { background-color: #374151; color: #f3f4f6; border: none; padding: 10px 15px; margin: 5px; border-radius:5px; cursor: pointer; }
-    button:hover { background-color: #4b5563; }
-    select, input { padding: 5px; border-radius: 5px; border: none; background-color: #374151; color: #f3f4f6; }
-   #izvestajContainer {
-  margin-top: 20px;
+   /* ===== Body ===== */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #1e1e2f;
+  color: #f0f0f5;
+  margin: 0;
+  padding: 0;
 }
 
-.card {
-  padding: 8px;
-  margin: 4px 0;
-  border-radius: 4px;
+/* ===== Заглавие / Хедер ===== */
+header {
+  background-color: #2a2a3d;
+  padding: 16px;
+  text-align: center;
+  font-size: 1.5rem;
   font-weight: bold;
+  color: #f0f0f5;
 }
 
-.card.green { background-color: #c8e6c9; }  /* над минимум */
-.card.red { background-color: #ffcdd2; }    /* под минимум */
+/* ===== Login форма ===== */
+#loginContainer {
+  max-width: 400px;
+  margin: 40px auto;
+  padding: 24px;
+  background-color: #2a2a3d;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+#loginContainer label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+#loginContainer input {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border: none;
+  border-radius: 6px;
+  background-color: #3b3b50;
+  color: #f0f0f5;
+  font-size: 1rem;
+}
+
+#loginContainer button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  background-color: #5a5aff;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+#loginContainer button:hover {
+  background-color: #7a7aff;
+}
+
+/* ===== Извештај ===== */
+#izvestajContainer {
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 16px;
+  background-color: #2a2a3d;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+#izvestajContainer label {
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+#izvestajCatSelect {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  background-color: #3b3b50;
+  color: #f0f0f5;
+  font-size: 1rem;
+  margin-bottom: 16px;
+}
+
+/* ===== Артикли / Cards ===== */
+.card {
+  padding: 12px 16px;
+  margin: 6px 0;
+  border-radius: 8px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  transition: transform 0.2s;
+}
+
+.card:hover {
+  transform: scale(1.02);
+}
+
+.card.green { background-color: #2e7d32; color: #e8f5e9; }
+.card.red { background-color: #c62828; color: #ffebee; }
+
+/* ===== Општо копчиња ===== */
+button {
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+/* ===== Табови / секции ===== */
+.tab {
+  display: none;
+}
+
+.tab.active {
+  display: block;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #2a2a3d;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #5a5aff;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #7a7aff;
+}
+
+/* ===== Мали екрани ===== */
+@media (max-width: 600px) {
+  #izvestajContainer {
+    padding: 12px;
+  }
+
+  .card {
+    font-size: 0.9rem;
+    padding: 10px;
+  }
+}
 
   </style>
 </head>
