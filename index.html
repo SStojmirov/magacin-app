@@ -312,11 +312,10 @@ document.getElementById('izvestajCatSelect').addEventListener('change', ()=>{
   loadIzvestaj();
 });
 
-// Повик при стартување на страната (по вчитување на artikliData)
 async function initIzvestaj(){
-  // Чекај да се вчита artikliData пред да пополнуваш категории
+  // Ако artikliData е празна, само прикажи празен dropdown
   if(!artikliData || !artikliData.length){
-    await loadArtikliData(); // твојата функција за вчитување артикли
+    console.warn("artikliData не е наполнета!");
   }
   loadIzvestajCategories();
   loadIzvestaj();
@@ -324,6 +323,7 @@ async function initIzvestaj(){
 
 // стартување
 initIzvestaj();
+
 
 
 async function loadOcek(){
