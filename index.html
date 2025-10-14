@@ -255,23 +255,29 @@ async function dodadiIzlez(){
 }
 
 
-// Функција за вчитување на категориите во dropdown
+// JS
+let artikliData = []; // глобална листа со артикли
+
+// Вчитување на артикли од Firebase
+async function loadArtikliFirebase() {
+  const snap = await db.collection('artikli').get();
+  artikliData = snap.docs.map(d => d.data());
+  initIzvestaj(); // стартување на извештајот после што е наполнета
+}
+
+// Пополнување на dropdown со категории
 function loadIzvestajCategories(){
   const catSelect = document.getElementById('izvestajCatSelect');
   catSelect.innerHTML = '<option value="">Сите категории</option>'; // најгоре
-
-  if(!artikliData || !artikliData.length) return;
-
   const cats = [...new Set(artikliData.map(a=>a.kategorija))];
   cats.forEach(c => { 
     catSelect.innerHTML += `<option value="${c}">${c}</option>`; 
   });
 }
 
-// Функција за прикажување на извештај
+// Прикажување на извештај
 async function loadIzvestaj(){
   const selectedCat = document.getElementById('izvestajCatSelect').value;
-
   const snap = await db.collection('promet').get();
   const records = snap.docs.map(d=>d.data());
 
@@ -312,19 +318,14 @@ document.getElementById('izvestajCatSelect').addEventListener('change', ()=>{
   loadIzvestaj();
 });
 
-async function initIzvestaj(){
-  // Ако artikliData е празна, само прикажи празен dropdown
-  if(!artikliData || !artikliData.length){
-    console.warn("artikliData не е наполнета!");
-  }
+// Иницијализација
+function initIzvestaj(){
   loadIzvestajCategories();
   loadIzvestaj();
 }
 
-// стартување
-initIzvestaj();
-
-
+// Стартување
+loadArtikliFirebase();
 
 async function loadOcek(){
   const sel = document.getElementById('ocekSelect');
