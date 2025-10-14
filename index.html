@@ -401,6 +401,19 @@ loadArtikliFirebase();
   });
 }
 
+  // Функција за вчитување артикули од Firebase и пополнување artikliData
+async function loadArtikliData() {
+  const snapshot = await firebase.firestore().collection('artikli').get();
+  artikliData = snapshot.docs.map(doc => doc.data());
+}
+
+// Повикај при load на апликацијата
+loadArtikliData().then(() => {
+  // сега може да се пополнат категориите и артиклите во „Очекувано“
+  loadOcekCategories();
+});
+
+
 function loadOcekArtikli() {
   const ocekSelect = document.getElementById('ocekSelect');
   const selectedCat = document.getElementById('ocekCatSelect').value;
