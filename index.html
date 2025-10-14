@@ -29,18 +29,21 @@
 
 /* ===== Мобилен респонзив ===== */
 @media (max-width: 600px) {
+  /* Контейнер и padding */
   .container {
     padding: 10px;
     margin: 10px;
   }
 
-  button {
+  /* Таб копчиња full-width */
+  #menuDiv button {
     width: 100%;
-    padding: 14px;
+    margin: 5px 0;
+    padding: 12px;
     font-size: 1rem;
-    margin: 6px 0;
   }
 
+  /* Input и select full-width */
   select, input {
     width: 100%;
     padding: 10px;
@@ -48,25 +51,22 @@
     margin-bottom: 10px;
   }
 
+  /* Cards вертикални, полесни за читање */
   .card {
-    padding: 10px 12px;
-    font-size: 0.95rem;
-    display: flex;
     flex-direction: column;
     align-items: flex-start;
+    padding: 10px 12px;
+    font-size: 0.95rem;
   }
 
-  #izvestajCatSelect {
-    width: 100%;
-    margin-bottom: 12px;
-  }
-
+  /* Извештај scrollable */
   #izvestajList {
     max-height: 60vh;
     overflow-y: auto;
     padding-right: 4px;
   }
 }
+
   </style>
 </head>
 <body>
@@ -388,5 +388,19 @@ async function dodadiOcek(){
   document.getElementById('ocekKolicina').value='';
   loadOcek();
 }
+
+  function showTab(tab) {
+  const tabs = ['vnesDiv','izlezDiv','izvestajDiv','ocekivanoDiv'];
+  tabs.forEach(t => document.getElementById(t).classList.add('hidden'));
+  
+  // Прикажи само избраниот
+  document.getElementById(tab + 'Div').classList.remove('hidden');
+}
+
+// На мобилен при стартување покажи првиот таб (Внес)
+if(window.innerWidth <= 600){
+  showTab('vnes');
+}
+
 </script>
 </body>
