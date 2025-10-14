@@ -135,10 +135,10 @@
   <h3>Очекувано (нарачано)</h3>
 
   <label>Категорија:</label>
-  <select id="ocekCatSelect" onchange="loadOcekArtikli()"></select><br>
+<select id="ocekCatSelect" onchange="loadOcekArtikli()"></select><br>
 
-  <label>Артикл:</label>
-  <select id="ocekSelect"></select><br>
+<label>Артикл:</label>
+<select id="ocekSelect"></select><br>
 
   <label>Количина:</label>
   <input type="number" id="ocekKolicina" inputmode="numeric" pattern="[0-9]*"><br>
@@ -406,22 +406,25 @@ loadOcekCategories();
   const ocekSelect = document.getElementById('ocekSelect');
   const selectedCat = document.getElementById('ocekCatSelect').value;
 
-  ocekSelect.innerHTML = '';
+  ocekSelect.innerHTML = ''; // празни пред пополнување
 
-  if(!selectedCat) return;
+  if(!selectedCat) return; // ако нема избрана категорија, нема да пополнува
 
   firebase.firestore().collection('artikli')
     .where('kategorija', '==', selectedCat)
     .get()
     .then(snapshot => {
       snapshot.forEach(doc => {
+        const data = doc.data();
         const option = document.createElement('option');
-        option.value = doc.data().naziv; // име на артикл
-        option.textContent = doc.data().naziv;
+        option.value = data.naziv; // Името на артиклот
+        option.textContent = data.naziv;
         ocekSelect.appendChild(option);
       });
-    });
+    })
+    .catch(err => console.error('Грешка при вчитување артикли:', err));
 }
+
 
 
 function loadOcek() {
