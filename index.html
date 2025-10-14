@@ -176,9 +176,11 @@ function login(){
     document.getElementById('appDiv').classList.remove('hidden');
     loadArtikli();
     loadIzlez();
-    loadOcek();
+    initOcek(); // << наместо loadOcek()
     loadIzvestaj();
-  } else { alert('Неточна лозинка'); }
+  } else { 
+    alert('Неточна лозинка'); 
+  }
 }
 function logout(){ location.reload(); }
 
