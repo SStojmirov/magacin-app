@@ -64,6 +64,12 @@
     <div id="izvestajDiv" class="hidden card">
       <h3>Моментална состојба</h3>
       <div id="izvestajList"></div>
+      <label>Филтер по категорија:</label>
+<select id="izvestajCatSelect">
+  <option value="">Сите категории</option>
+</select>
+<div id="izvestajList"></div>
+
     </div>
 
     <div id="ocekivanoDiv" class="hidden card">
@@ -238,22 +244,55 @@ async function dodadiIzlez(){
 
 
 async function loadIzvestaj(){
+  const catSelect = document.getElementById('izvestajCatSelect');
+  const selectedCat = catSelect.value;
+
   const snap = await db.collection('promet').get();
   const records = snap.docs.map(d=>d.data());
+
+  // Пресметка на моментална количина за секој артикл
   const map = new Map();
   records.forEach(r=>{
     const key = r.artiklId;
-    const cur = map.get(key)||{ ime:r.ime, merka:r.merka, kategorija:r.kategorija, kolicina:0, minKolicina: (artikliData.find(a=>a.id===key)||{}).minKolicina||0};
-    cur.kolicina += (r.tip==='vnes'?r.kolicina:-r.kolicina);
-    map.set(key,cur);
+    const cur = map.get(key) || { ime:r.ime, merka:r.merka, kategorija:r.kategorija, kolicina:0, minKolicina:(artikliData.find(a=>a.id===key)||{}).minKolicina||0 };
+    cur.kolicina += (r.tip==='vnes' ? r.kolicina : -r.kolicina);
+    map.set(key, cur);
   });
+
+  // Претвори во листа и филтрирај по категорија ако е избрана
+  let list = Array.from(map.values());
+  if(selectedCat) list = list.filter(a => a.kategorija === selectedCat);
+
+  // Сортирај артикли кои се под минимум на почеток
+  list.sort((a,b)=>{
+    const aLow = a.kolicina <= a.minKolicina ? 0 : 1;
+    const bLow = b.kolicina <= b.minKolicina ? 0 : 1;
+    return aLow - bLow;
+  });
+
+  // Прикажи во div
   const div = document.getElementById('izvestajList');
   div.innerHTML='';
-  map.forEach(a=>{
-    let cls='green'; if(a.kolicina<a.minKolicina) cls='red';
-    div.innerHTML+=`<div class='card ${cls}'>${a.ime} (${a.merka}) - ${a.kolicina}</div>`;
+  list.forEach(a=>{
+    let cls='green';
+    if(a.kolicina <= a.minKolicina) cls='orange';
+    else if(a.kolicina <= a.minKolicina*2) cls='red';
+    div.innerHTML += `<div class='card ${cls}'>${a.ime} (${a.merka}) - ${a.kolicina}</div>`;
   });
 }
+
+// Event listener за категорија
+document.getElementById('izvestajCatSelect').addEventListener('change', ()=>{
+  loadIzvestaj();
+});
+
+// Пополнување dropdown со категории при вчитување
+function loadIzvestajCategories(){
+  const catSelect = document.getElementById('izvestajCatSelect');
+  const cats = [...new Set(artikliData.map(a=>a.kategorija))];
+  cats.forEach(c => { catSelect.innerHTML += `<option value="${c}">${c}</option>`; });
+}
+
 
 async function loadOcek(){
   const sel = document.getElementById('ocekSelect');
