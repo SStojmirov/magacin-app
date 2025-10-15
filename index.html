@@ -116,7 +116,7 @@
 <label>Количина:</label>
 <input type="number" inputmode="numeric" id="izlezKolicina"><br><br>
 <button onclick="dodadiIzlez()">Додади Излез</button>
-
+<div id="lastIzlez"></div>
     </div>
 
     <div id="izvestajDiv" class="hidden card">
@@ -312,6 +312,7 @@ async function dodadiIzlez(){
   });
 
   document.getElementById('izlezKolicina').value='';
+  document.getElementById('lastIzlez').innerText = `Последен излез: ${a.ime} - ${k} ${a.merka}`;
   loadIzvestaj();
   loadIzlez();
 }
