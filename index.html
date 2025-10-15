@@ -251,7 +251,7 @@ async function dodadiVnes(){
     artiklId:a.id, ime:a.ime, merka:a.merka, kategorija:a.kategorija, kolicina:k, tip:'vnes', datum:new Date()
   });
   document.getElementById('vnesKolicina').value='';
-  document.getElementById('lastVnes').innerText=`Последен внес: ${a.ime} - ${k} ${a.merka}`;
+  document.getElementById('lastVnes').innerText=`Последен влез: ${a.ime} - ${k} ${a.merka}`;
   loadIzvestaj();
 }
 
