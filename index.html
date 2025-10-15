@@ -322,10 +322,17 @@ function initIzvestaj(){
   const catSelect = document.getElementById('izvestajCatSelect');
   catSelect.innerHTML = '<option value="">Сите категории</option>';
   const cats = [...new Set(artikliData.map(a=>a.kategorija))];
-  cats.forEach(c => { catSelect.innerHTML += `<option value="${c}">${c}</option>`; });
+  cats.forEach(c => { 
+    const option = document.createElement('option');
+    option.value = c;
+    option.textContent = c;
+    catSelect.appendChild(option);
+  });
 
+  catSelect.value = ""; // Сите категории по дифолт
   loadIzvestaj();
 }
+
 async function loadIzvestaj(){
   const selectedCat = document.getElementById('izvestajCatSelect').value;
   const snap = await db.collection('promet').get();
