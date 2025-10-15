@@ -195,25 +195,17 @@ async function login() {
 function logout(){ location.reload(); }
 
 function showTab(tab){
-  // Листа на сите табови
-  const allTabs = ['vnesDiv','izlezDiv','izvestajDiv','pregledPrometDiv','ocekivanoDiv'];
-  
-  // Скриј ги сите табови
-  allTabs.forEach(t => {
-    document.getElementById(t).classList.add('hidden');
+  ['vnesDiv','izlezDiv','izvestajDiv','pregledPrometDiv','ocekivanoDiv'].forEach(d=>{
+    document.getElementById(d).classList.add('hidden');
   });
+  const div = document.getElementById(tab+'Div');
+  div.classList.remove('hidden');
 
-  // Прикажи само избраниот
-  document.getElementById(tab+'Div').classList.remove('hidden');
-
-  // Ако не е извештај, исчисти го изvestajList
-  if(tab !== 'izvestaj') {
-    document.getElementById('izvestajList').innerHTML = '';
-  }
-
-  // Ако не е Преглед на промет, исчисти го списокот
-  if(tab !== 'pregledPromet') {
-    document.getElementById('pregledPrometList').innerHTML = '';
+  // Додадено: ако е табот 'izvestaj', ресетирај на сите категории и прикажи
+  if(tab === 'izvestaj'){
+    const catSelect = document.getElementById('izvestajCatSelect');
+    catSelect.value = ""; // Сите категории
+    loadIzvestaj();
   }
 }
 
