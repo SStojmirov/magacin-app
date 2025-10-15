@@ -91,6 +91,7 @@
       <button onclick="showTab('vnes')">Внес</button>
       <button onclick="showTab('izlez')">Излез</button>
       <button onclick="showTab('izvestaj')">Извештај</button>
+      <button onclick="showTab('pregledPromet')">Преглед промет</button>
       <button onclick="showTab('ocekivano')">Очекувано</button>
       <button onclick="logout()">ЛогАут</button>
     </div>
@@ -130,7 +131,15 @@
 
 
     </div>
-
+<div id="pregledPrometDiv" class="hidden card">
+  <h3>Преглед на промет</h3>
+  <label>Од датум:</label>
+  <input type="date" id="prometOd"><br><br>
+  <label>До датум:</label>
+  <input type="date" id="prometDo"><br><br>
+  <button onclick="loadPregledPromet()">Прикажи</button>
+  <div id="pregledPrometList" style="margin-top:10px;"></div>
+</div>
     <div id="ocekivanoDiv" class="hidden card">
   <h3>Очекувано (нарачано)</h3>
 
@@ -152,6 +161,8 @@
 
   <div id="ocekList" style="margin-top:10px;"></div>
 </div>
+  
+
 </div>
 </div>
 
@@ -413,6 +424,40 @@ function loadOcekList(){
 // Event listener за таб „Очекувано“
 document.getElementById('ocekCatSelect').addEventListener('change', loadOcekArtikli);
 
+async function loadPregledPromet() {
+  const od = document.getElementById('prometOd').value;
+  const doD = document.getElementById('prometDo').value;
+  const listDiv = document.getElementById('pregledPrometList');
+  listDiv.innerHTML = '';
+
+  if(!od || !doD){
+    alert('Избери и од и до датум!');
+    return;
+  }
+
+  const odDate = new Date(od);
+  const doDate = new Date(doD);
+  // да вклучи целиот ден
+  doDate.setHours(23,59,59,999);
+
+  const snap = await db.collection('promet').orderBy('datum','asc').get();
+  const records = snap.docs.map(d=>({id:d.id, ...d.data()}))
+                          .filter(r=>{
+                            const d = r.datum.toDate ? r.datum.toDate() : new Date(r.datum);
+                            return d >= odDate && d <= doDate;
+                          });
+
+  records.forEach(r=>{
+    const cls = r.tip==='vnes' ? 'green' : 'red';
+    const d = r.datum.toDate ? r.datum.toDate() : new Date(r.datum);
+    const div = document.createElement('div');
+    div.classList.add('card', cls);
+    div.textContent = `${r.ime} (${r.kolicina} ${r.merka}) | ${r.tip.toUpperCase()} | ${d.toLocaleDateString()}`;
+    listDiv.appendChild(div);
+  });
+}
+
+  
 // На мобилен при стартување покажи првиот таб (Внес)
 if(window.innerWidth <= 600){
   showTab('vnes');
