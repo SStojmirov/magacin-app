@@ -201,13 +201,20 @@ function showTab(tab){
   const div = document.getElementById(tab+'Div');
   div.classList.remove('hidden');
 
-  // Додадено: ако е табот 'izvestaj', ресетирај на сите категории и прикажи
   if(tab === 'izvestaj'){
     const catSelect = document.getElementById('izvestajCatSelect');
     catSelect.value = ""; // Сите категории
     loadIzvestaj();
   }
+
+  if(tab === 'pregledPromet'){
+    const today = new Date().toISOString().slice(0,10); // yyyy-mm-dd
+    document.getElementById('prometOd').value = today;
+    document.getElementById('prometDo').value = today;
+    loadPregledPromet(); // автоматски прикажи денешен промет
+  }
 }
+
 
 
 let artikliData = [];
