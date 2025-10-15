@@ -90,7 +90,7 @@
     <div id="menuDiv">
       <button onclick="showTab('vnes')">Влез</button>
       <button onclick="showTab('izlez')">Излез</button>
-      <button onclick="showTab('izvestaj')">Извештај</button>
+      <button onclick="showTab('izvestaj')">Состојба</button>
       <button onclick="showTab('pregledPromet')">Преглед Влез/Излез</button>
       <button onclick="showTab('ocekivano')">Очекувано</button>
       <button onclick="logout()">ЛогАут</button>
@@ -132,14 +132,27 @@
 
     </div>
 <div id="pregledPrometDiv" class="hidden card">
-  <h3>Преглед на промет</h3>
+  <h3>Преглед на Влез/Излез</h3>
+  <label>Филтер Категорија:</label>
+  <select id="prometCatSelect">
+    <option value="">Сите категории</option>
+  </select><br><br>
+  <label>Филтер Артикл:</label>
+  <select id="prometArtiklSelect">
+    <option value="">Сите артикли</option>
+  </select><br><br>
   <label>Од датум:</label>
   <input type="date" id="prometOd"><br><br>
   <label>До датум:</label>
   <input type="date" id="prometDo"><br><br>
   <button onclick="loadPregledPromet()">Прикажи</button>
   <div id="pregledPrometList" style="margin-top:10px;"></div>
+  <div style="margin-top:10px;">
+    <span style="background-color:orange; padding:4px; border-radius:4px;" id="totalVnes">Влез: 0</span>
+    <span style="background-color:purple; color:white; padding:4px; border-radius:4px; margin-left:10px;" id="totalIzlez">Излез: 0</span>
+  </div>
 </div>
+
     <div id="ocekivanoDiv" class="hidden card">
   <h3>Очекувано (нарачано)</h3>
 
@@ -231,6 +244,31 @@ async function loadArtikli(){
   const cats = [...new Set(artikliData.map(a=>a.kategorija))];
   cats.forEach(c=>{ catSelect.innerHTML+=`<option value='${c}'>${c}</option>`; });
   artikliData.forEach(a=>{ artiklSelect.innerHTML+=`<option value='${a.id}'>${a.ime} (${a.merka})</option>` });
+
+  // за Преглед промет
+const prometCatSelect = document.getElementById('prometCatSelect');
+const prometArtiklSelect = document.getElementById('prometArtiklSelect');
+
+// пополнување категории
+const cats = [...new Set(artikliData.map(a=>a.kategorija))];
+cats.forEach(c=>{
+  prometCatSelect.innerHTML += `<option value="${c}">${c}</option>`;
+});
+
+// пополнување артикли
+artikliData.forEach(a=>{
+  prometArtiklSelect.innerHTML += `<option value="${a.id}">${a.ime}</option>`;
+});
+
+// ако се промени категорија да филтрира артикли
+prometCatSelect.addEventListener('change', ()=>{
+  const cat = prometCatSelect.value;
+  prometArtiklSelect.innerHTML = '<option value="">Сите артикли</option>';
+  artikliData.filter(a=>!cat||a.kategorija===cat).forEach(a=>{
+    prometArtiklSelect.innerHTML += `<option value="${a.id}">${a.ime}</option>`;
+  });
+});
+
 }
 
 function filterArtikli(){
@@ -451,8 +489,12 @@ document.getElementById('ocekCatSelect').addEventListener('change', loadOcekArti
 async function loadPregledPromet() {
   const od = document.getElementById('prometOd').value;
   const doD = document.getElementById('prometDo').value;
+  const selectedCat = document.getElementById('prometCatSelect').value;
+  const selectedArtikl = document.getElementById('prometArtiklSelect').value;
   const listDiv = document.getElementById('pregledPrometList');
   listDiv.innerHTML = '';
+  let totalVnes = 0;
+  let totalIzlez = 0;
 
   if(!od || !doD){
     alert('Избери и од и до датум!');
@@ -461,15 +503,18 @@ async function loadPregledPromet() {
 
   const odDate = new Date(od);
   const doDate = new Date(doD);
-  // да вклучи целиот ден
   doDate.setHours(23,59,59,999);
 
   const snap = await db.collection('promet').orderBy('datum','asc').get();
-  const records = snap.docs.map(d=>({id:d.id, ...d.data()}))
+  let records = snap.docs.map(d=>({id:d.id, ...d.data()}))
                           .filter(r=>{
                             const d = r.datum.toDate ? r.datum.toDate() : new Date(r.datum);
                             return d >= odDate && d <= doDate;
                           });
+
+  // филтрирање по категорија и артикл
+  if(selectedCat) records = records.filter(r => r.kategorija === selectedCat);
+  if(selectedArtikl) records = records.filter(r => r.artiklId === selectedArtikl);
 
   records.forEach(r=>{
     const cls = r.tip==='vnes' ? 'green' : 'red';
@@ -478,7 +523,13 @@ async function loadPregledPromet() {
     div.classList.add('card', cls);
     div.textContent = `${r.ime} (${r.kolicina} ${r.merka}) | ${r.tip.toUpperCase()} | ${d.toLocaleDateString()}`;
     listDiv.appendChild(div);
+
+    if(r.tip==='vnes') totalVnes += r.kolicina;
+    else totalIzlez += r.kolicina;
   });
+
+  document.getElementById('totalVnes').innerText = `Влез: ${totalVnes}`;
+  document.getElementById('totalIzlez').innerText = `Излез: ${totalIzlez}`;
 }
 
   
